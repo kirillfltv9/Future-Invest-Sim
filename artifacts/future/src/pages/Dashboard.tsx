@@ -10,7 +10,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, formatPercent, getProfitLossColor } from "@/lib/utils";
-import { LogOut, Calendar, TrendingUp, TrendingDown, Clock, Newspaper, Loader2, AlertCircle } from "lucide-react";
+import { LogOut, Calendar, TrendingUp, TrendingDown, Clock, Newspaper, Loader2, AlertCircle, Zap, FastForward } from "lucide-react";
 import { PortfolioChart } from "@/components/dashboard/PortfolioChart";
 import { HoldingsList } from "@/components/dashboard/HoldingsList";
 import { MarketPanel } from "@/components/dashboard/MarketPanel";
@@ -39,6 +39,23 @@ export function Dashboard() {
       }
     }
   });
+
+  const [fastForwarding, setFastForwarding] = useState(false);
+
+  async function handleFastForward(days: number) {
+    if (!game || fastForwarding || advanceDay.isPending) return;
+    setFastForwarding(true);
+    try {
+      await fetch(`/api/game/${game.sessionId}/advance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days }),
+      });
+      queryClient.invalidateQueries({ queryKey: getGetGameQueryKey(sessionId!) });
+    } finally {
+      setFastForwarding(false);
+    }
+  }
 
   if (gameError) {
     return (
@@ -95,14 +112,35 @@ export function Dashboard() {
             </span>
           </div>
           
-          <button
-            onClick={() => advanceDay.mutate({ sessionId: game.sessionId })}
-            disabled={advanceDay.isPending}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-[0_0_15px_rgba(var(--primary),0.3)] disabled:opacity-70"
-          >
-            {advanceDay.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
-            Advance Day
-          </button>
+          <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl p-1">
+            <button
+              onClick={() => advanceDay.mutate({ sessionId: game.sessionId })}
+              disabled={advanceDay.isPending || fastForwarding}
+              title="Advance 1 Day"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg bg-transparent hover:bg-white/10 text-foreground transition-all disabled:opacity-50"
+            >
+              {advanceDay.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Clock className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">+1</span>
+            </button>
+            <button
+              onClick={() => handleFastForward(5)}
+              disabled={advanceDay.isPending || fastForwarding}
+              title="Fast Forward 5 Days"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-[0_0_12px_rgba(59,130,246,0.35)] disabled:opacity-50"
+            >
+              {fastForwarding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+              5x
+            </button>
+            <button
+              onClick={() => handleFastForward(30)}
+              disabled={advanceDay.isPending || fastForwarding}
+              title="Skip 1 Month (30 Days)"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg bg-transparent hover:bg-white/10 text-muted-foreground transition-all disabled:opacity-50"
+            >
+              {fastForwarding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FastForward className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">1M</span>
+            </button>
+          </div>
           
           <button 
             onClick={() => { clearSessionId(); setLocation("/"); }}

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, gameSessions, type Holding, type StockPrice } from "@workspace/db";
+import { db, gameSessions, type Holding, type StockPrice, type PortfolioSnapshot } from "@workspace/db";
 import { CreateGameBody, ExecuteTradeBody } from "@workspace/api-zod";
 import { randomUUID } from "crypto";
 import {
@@ -139,6 +139,9 @@ router.get("/game/:sessionId", async (req, res) => {
 
 router.post("/game/:sessionId/advance", async (req, res) => {
   const { sessionId } = req.params;
+  const rawDays = req.body?.days;
+  const daysToAdvance = Number.isInteger(rawDays) && rawDays >= 1 && rawDays <= 30 ? rawDays : 1;
+
   const session = await db.query.gameSessions.findFirst({
     where: eq(gameSessions.sessionId, sessionId!),
   });
@@ -149,47 +152,57 @@ router.post("/game/:sessionId/advance", async (req, res) => {
   }
 
   const gameSeed = getGameSeed(session.sessionId);
-  const newDay = session.currentDay + 1;
-  const newDate = formatGameDate(newDay);
-  const sentiment = getNextSentiment(newDay, gameSeed);
-  const currentPrices = session.stockPrices as StockPrice[];
-  const newPrices = advancePrices(currentPrices, newDay, gameSeed, sentiment);
-  const newsEvents = getNewsDayEvents(newDay, sentiment, gameSeed);
-  const holdings = session.holdings as Holding[];
-
+  let currentDay = session.currentDay;
+  let currentPrices = session.stockPrices as StockPrice[];
   let cashBalance = session.cashBalance;
-  const dividendEvents: string[] = [];
+  const holdings = session.holdings as Holding[];
+  const history = [...(session.portfolioHistory as PortfolioSnapshot[])];
 
-  for (const holding of holdings) {
-    const stockDef = STOCKS.find((s) => s.ticker === holding.ticker);
-    if (stockDef && stockDef.dividendYield > 0) {
-      const priceObj = newPrices.find((p) => p.ticker === holding.ticker);
-      const currentPrice = priceObj?.price ?? 0;
-      const dailyDividend = (stockDef.dividendYield / 252) * holding.shares * currentPrice;
-      if (dailyDividend > 0.01) {
-        cashBalance += dailyDividend;
-        dividendEvents.push(
-          `${holding.ticker} dividend paid: $${dailyDividend.toFixed(2)}`
-        );
+  let lastSentiment: MarketSentiment = session.marketSentiment as MarketSentiment;
+  let lastNews: string[] = [];
+
+  for (let i = 0; i < daysToAdvance; i++) {
+    currentDay += 1;
+    const newDate = formatGameDate(currentDay);
+    const sentiment = getNextSentiment(currentDay, gameSeed);
+    lastSentiment = sentiment;
+
+    currentPrices = advancePrices(currentPrices, currentDay, gameSeed, sentiment);
+
+    const dayDividendEvents: string[] = [];
+    for (const holding of holdings) {
+      const stockDef = STOCKS.find((s) => s.ticker === holding.ticker);
+      if (stockDef && stockDef.dividendYield > 0) {
+        const priceObj = currentPrices.find((p) => p.ticker === holding.ticker);
+        const price = priceObj?.price ?? 0;
+        const dailyDividend = (stockDef.dividendYield / 252) * holding.shares * price;
+        if (dailyDividend > 0.01) {
+          cashBalance += dailyDividend;
+          dayDividendEvents.push(`${holding.ticker} dividend: $${dailyDividend.toFixed(2)}`);
+        }
       }
+    }
+
+    const snapshot = computePortfolioSnapshot(currentDay, newDate, cashBalance, holdings, currentPrices);
+    history.push(snapshot);
+
+    if (i === daysToAdvance - 1) {
+      lastNews = [...dayDividendEvents, ...getNewsDayEvents(currentDay, sentiment, gameSeed)];
     }
   }
 
-  const snapshot = computePortfolioSnapshot(newDay, newDate, cashBalance, holdings, newPrices);
-  const history = [...(session.portfolioHistory as []), snapshot];
-
-  const allNews = [...dividendEvents, ...newsEvents];
+  const currentDate = formatGameDate(currentDay);
 
   await db
     .update(gameSessions)
     .set({
-      currentDay: newDay,
-      currentDate: newDate,
-      stockPrices: newPrices,
+      currentDay,
+      currentDate,
+      stockPrices: currentPrices,
       cashBalance,
       portfolioHistory: history,
-      marketSentiment: sentiment,
-      newsEvents: allNews,
+      marketSentiment: lastSentiment,
+      newsEvents: lastNews,
       updatedAt: new Date(),
     })
     .where(eq(gameSessions.sessionId, sessionId!));
