@@ -10,7 +10,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, formatPercent, getProfitLossColor } from "@/lib/utils";
-import { LogOut, Calendar, TrendingUp, TrendingDown, Clock, Newspaper, Loader2, AlertCircle, Zap, FastForward } from "lucide-react";
+import { LogOut, Calendar, TrendingUp, TrendingDown, Clock, Newspaper, Loader2, AlertCircle, Zap, FastForward, RotateCcw } from "lucide-react";
 import { PortfolioChart } from "@/components/dashboard/PortfolioChart";
 import { HoldingsList } from "@/components/dashboard/HoldingsList";
 import { MarketPanel } from "@/components/dashboard/MarketPanel";
@@ -142,12 +142,13 @@ export function Dashboard() {
             </button>
           </div>
           
-          <button 
+          <button
             onClick={() => { clearSessionId(); setLocation("/"); }}
-            className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-            title="End Session"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-white/10 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/10 transition-all"
+            title="Restart Game"
           >
-            <LogOut className="w-5 h-5" />
+            <RotateCcw className="w-3.5 h-3.5" />
+            Restart
           </button>
         </div>
       </header>
