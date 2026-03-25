@@ -14,7 +14,7 @@ import {
   getNextSentiment,
   type MarketSentiment,
 } from "../lib/gameEngine.js";
-import { STOCKS } from "../lib/stocks.js";
+import { STOCKS, getStocksByMode } from "../lib/stocks.js";
 
 const router: IRouter = Router();
 
@@ -58,6 +58,7 @@ function buildGameResponse(session: typeof gameSessions.$inferSelect) {
     totalGainLossPercent: parseFloat(totalGainLossPercent.toFixed(2)),
     marketSentiment: session.marketSentiment as MarketSentiment,
     newsEvents: session.newsEvents as string[],
+    marketMode: (session.marketMode ?? "stocks") as "stocks" | "crypto" | "mixed",
   };
 }
 
@@ -81,6 +82,9 @@ router.post("/game/new", async (req, res) => {
   }
 
   const { startingCash, playerName } = parseResult.data;
+  const rawMode = req.body?.marketMode;
+  const marketMode: "stocks" | "crypto" | "mixed" =
+    rawMode === "crypto" || rawMode === "mixed" ? rawMode : "stocks";
 
   if (startingCash < 100 || startingCash > 10_000_000) {
     res.status(400).json({ error: "Starting cash must be between $100 and $10,000,000" });
@@ -90,9 +94,13 @@ router.post("/game/new", async (req, res) => {
   const sessionId = randomUUID();
   const gameSeed = getGameSeed(sessionId);
   const initialDate = formatGameDate(0);
-  const initialPrices = generateInitialPrices(gameSeed);
+  const filteredStocks = getStocksByMode(marketMode);
+  const initialPrices = generateInitialPrices(gameSeed, filteredStocks);
   const initialSentiment: MarketSentiment = "neutral";
-  const initialNews = ["Markets open — your investment journey begins today. Choose wisely!"];
+  const modeLabel = marketMode === "crypto" ? "Crypto markets live 24/7 — your digital asset journey begins!" :
+                    marketMode === "mixed" ? "Stocks & crypto loaded — diversify wisely!" :
+                    "Markets open — your investment journey begins today. Choose wisely!";
+  const initialNews = [modeLabel];
 
   const initialSnapshot = computePortfolioSnapshot(0, initialDate, startingCash, [], initialPrices);
 
@@ -109,6 +117,7 @@ router.post("/game/new", async (req, res) => {
     tradeHistory: [],
     marketSentiment: initialSentiment,
     newsEvents: initialNews,
+    marketMode,
   });
 
   const session = await db.query.gameSessions.findFirst({

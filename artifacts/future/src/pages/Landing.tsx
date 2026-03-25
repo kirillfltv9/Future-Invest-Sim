@@ -3,17 +3,49 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useCreateGame } from "@workspace/api-client-react";
 import { setSessionId, getSessionId } from "@/lib/session";
-import { ArrowRight, Wallet, User, TrendingUp, Loader2 } from "lucide-react";
+import { ArrowRight, Wallet, User, TrendingUp, Loader2, Bitcoin, BarChart2, Layers } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 const STARTING_AMOUNTS = [1000, 5000, 10000, 25000, 50000, 100000];
+
+type MarketMode = "stocks" | "crypto" | "mixed";
+
+const MODES: { id: MarketMode; label: string; sub: string; icon: React.ReactNode; color: string }[] = [
+  {
+    id: "stocks",
+    label: "Stocks",
+    sub: "60+ companies",
+    icon: <BarChart2 className="w-5 h-5" />,
+    color: "blue",
+  },
+  {
+    id: "crypto",
+    label: "Crypto",
+    sub: "BTC, ETH, SOL & more",
+    icon: <Bitcoin className="w-5 h-5" />,
+    color: "orange",
+  },
+  {
+    id: "mixed",
+    label: "Both",
+    sub: "Stocks + Crypto",
+    icon: <Layers className="w-5 h-5" />,
+    color: "purple",
+  },
+];
+
+const MODE_COLORS: Record<MarketMode, string> = {
+  stocks: "border-blue-500 bg-blue-500/15 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.25)]",
+  crypto: "border-orange-500 bg-orange-500/15 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.25)]",
+  mixed: "border-purple-500 bg-purple-500/15 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.25)]",
+};
 
 export function Landing() {
   const [, setLocation] = useLocation();
   const [name, setName] = useState("");
   const [cash, setCash] = useState<number>(10000);
-  
-  // Auto-redirect if session exists
+  const [mode, setMode] = useState<MarketMode>("stocks");
+
   useEffect(() => {
     if (getSessionId()) {
       setLocation("/dashboard");
@@ -29,31 +61,36 @@ export function Landing() {
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    
-    createGame.mutate({
-      data: {
-        playerName: name.trim(),
-        startingCash: cash
-      }
+
+    const res = await fetch("/api/game/new", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerName: name.trim(), startingCash: cash, marketMode: mode }),
     });
+    const data = await res.json();
+    if (data.sessionId) {
+      setSessionId(data.sessionId);
+      setLocation("/dashboard");
+    }
   };
+
+  const isLoading = createGame.isPending;
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background">
-      {/* Background Image & Overlay */}
       <div className="absolute inset-0 z-0">
-        <img 
-          src={`${import.meta.env.BASE_URL}images/landing-bg.png`} 
-          alt="Abstract financial background" 
+        <img
+          src={`${import.meta.env.BASE_URL}images/landing-bg.png`}
+          alt="Abstract financial background"
           className="w-full h-full object-cover opacity-30"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background to-background" />
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
@@ -72,6 +109,34 @@ export function Landing() {
         </div>
 
         <form onSubmit={handleSubmit} className="glass-panel p-8 rounded-3xl space-y-8">
+
+          {/* Market Mode */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Layers className="w-4 h-4" />
+              Market Type
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              {MODES.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setMode(m.id)}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border font-medium transition-all ${
+                    mode === m.id
+                      ? MODE_COLORS[m.id]
+                      : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                  }`}
+                >
+                  {m.icon}
+                  <span className="text-sm font-semibold">{m.label}</span>
+                  <span className="text-[10px] opacity-70 font-normal">{m.sub}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Name */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <User className="w-4 h-4" />
@@ -88,6 +153,7 @@ export function Landing() {
             />
           </div>
 
+          {/* Capital */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Wallet className="w-4 h-4" />
@@ -105,7 +171,7 @@ export function Landing() {
                       : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
                   }`}
                 >
-                  {formatCurrency(amount).replace('.00', '')}
+                  {formatCurrency(amount).replace(".00", "")}
                 </button>
               ))}
             </div>
@@ -113,10 +179,10 @@ export function Landing() {
 
           <button
             type="submit"
-            disabled={!name.trim() || createGame.isPending}
+            disabled={!name.trim() || isLoading}
             className="w-full py-4 rounded-xl bg-white text-black font-bold text-lg hover:bg-white/90 transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
           >
-            {createGame.isPending ? (
+            {isLoading ? (
               <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
               <>

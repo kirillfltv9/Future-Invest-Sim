@@ -15,6 +15,7 @@ export const gameSessions = pgTable("game_sessions", {
   tradeHistory: jsonb("trade_history").notNull().$type<TradeRecord[]>().default([]),
   marketSentiment: text("market_sentiment").notNull().default("neutral"),
   newsEvents: jsonb("news_events").notNull().$type<string[]>().default([]),
+  marketMode: text("market_mode").notNull().default("stocks"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

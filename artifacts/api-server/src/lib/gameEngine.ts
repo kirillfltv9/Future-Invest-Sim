@@ -57,8 +57,8 @@ function gaussianRandom(seed: number): number {
   return Math.sqrt(-2 * Math.log(u1 + 0.0001)) * Math.cos(2 * Math.PI * u2);
 }
 
-export function generateInitialPrices(gameSeed: number): StockPrice[] {
-  return STOCKS.map((stock, i) => {
+export function generateInitialPrices(gameSeed: number, stockList = STOCKS): StockPrice[] {
+  return stockList.map((stock, i) => {
     const variance = 1 + gaussianRandom(gameSeed + i * 7) * 0.05;
     const initialPrice = Math.max(1, stock.basePrice * variance);
     return {
