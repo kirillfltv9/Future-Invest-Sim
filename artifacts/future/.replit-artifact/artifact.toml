@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Future - Investment Practice"
+version = "1.0.0"
+id = "artifacts/future"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19709
+
+[services.development]
+run = "pnpm --filter @workspace/future run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/future", "run", "build" ]
+publicDir = "artifacts/future/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19709"
+BASE_PATH = "/"

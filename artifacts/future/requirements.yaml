@@ -1,0 +1,16 @@
+packages:
+  "recharts": "For rendering portfolio performance charts"
+  "framer-motion": "For smooth transitions and page animations"
+  "date-fns": "For formatting dates nicely"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility for merging tailwind classes without conflicts"
+  "lucide-react": "For UI icons"
+
+images:
+  - path: "artifacts/future/public/images/landing-bg.png"
+    description: "Abstract, elegant dark geometric mesh background with subtle glowing data lines, deep navy blue and emerald green hues, professional financial aesthetic"
+    aspect_ratio: "16:9"
+
+notes:
+  - Session ID is stored in localStorage under 'future_session_id'
+  - The API types are imported from @workspace/api-client-react

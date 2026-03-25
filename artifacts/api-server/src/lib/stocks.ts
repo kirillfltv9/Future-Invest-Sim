@@ -1,0 +1,167 @@
+export type StockDefinition = {
+  ticker: string;
+  name: string;
+  sector: string;
+  description: string;
+  volatility: number;
+  dividendYield: number;
+  basePrice: number;
+  trend: number;
+};
+
+export const STOCKS: StockDefinition[] = [
+  {
+    ticker: "AAPL",
+    name: "Apple Inc.",
+    sector: "Technology",
+    description: "Consumer electronics, software, and services giant",
+    volatility: 0.018,
+    dividendYield: 0.005,
+    basePrice: 189.5,
+    trend: 0.0003,
+  },
+  {
+    ticker: "MSFT",
+    name: "Microsoft Corp.",
+    sector: "Technology",
+    description: "Cloud computing, software, and enterprise solutions",
+    volatility: 0.016,
+    dividendYield: 0.007,
+    basePrice: 415.2,
+    trend: 0.0004,
+  },
+  {
+    ticker: "GOOGL",
+    name: "Alphabet Inc.",
+    sector: "Technology",
+    description: "Search, advertising, and cloud services",
+    volatility: 0.02,
+    dividendYield: 0.0,
+    basePrice: 175.8,
+    trend: 0.0003,
+  },
+  {
+    ticker: "AMZN",
+    name: "Amazon.com Inc.",
+    sector: "Consumer Discretionary",
+    description: "E-commerce and cloud computing leader",
+    volatility: 0.022,
+    dividendYield: 0.0,
+    basePrice: 218.3,
+    trend: 0.0004,
+  },
+  {
+    ticker: "TSLA",
+    name: "Tesla Inc.",
+    sector: "Automotive",
+    description: "Electric vehicles and clean energy company",
+    volatility: 0.045,
+    dividendYield: 0.0,
+    basePrice: 248.6,
+    trend: 0.0002,
+  },
+  {
+    ticker: "NVDA",
+    name: "NVIDIA Corp.",
+    sector: "Technology",
+    description: "Graphics processing units and AI chips",
+    volatility: 0.038,
+    dividendYield: 0.001,
+    basePrice: 875.4,
+    trend: 0.0006,
+  },
+  {
+    ticker: "META",
+    name: "Meta Platforms Inc.",
+    sector: "Technology",
+    description: "Social media and virtual reality platforms",
+    volatility: 0.028,
+    dividendYield: 0.003,
+    basePrice: 562.1,
+    trend: 0.0004,
+  },
+  {
+    ticker: "JPM",
+    name: "JPMorgan Chase & Co.",
+    sector: "Financials",
+    description: "Global investment banking and financial services",
+    volatility: 0.014,
+    dividendYield: 0.023,
+    basePrice: 218.7,
+    trend: 0.0002,
+  },
+  {
+    ticker: "JNJ",
+    name: "Johnson & Johnson",
+    sector: "Healthcare",
+    description: "Pharmaceuticals, medical devices, and consumer health",
+    volatility: 0.01,
+    dividendYield: 0.031,
+    basePrice: 152.3,
+    trend: 0.0001,
+  },
+  {
+    ticker: "XOM",
+    name: "Exxon Mobil Corp.",
+    sector: "Energy",
+    description: "Global oil and natural gas exploration and production",
+    volatility: 0.02,
+    dividendYield: 0.034,
+    basePrice: 112.8,
+    trend: 0.0001,
+  },
+  {
+    ticker: "KO",
+    name: "The Coca-Cola Co.",
+    sector: "Consumer Staples",
+    description: "Beverages and consumer products worldwide",
+    volatility: 0.008,
+    dividendYield: 0.032,
+    basePrice: 62.5,
+    trend: 0.0001,
+  },
+  {
+    ticker: "BRK",
+    name: "Berkshire Hathaway",
+    sector: "Financials",
+    description: "Diversified holding company led by Warren Buffett",
+    volatility: 0.012,
+    dividendYield: 0.0,
+    basePrice: 442.6,
+    trend: 0.0002,
+  },
+  {
+    ticker: "NFLX",
+    name: "Netflix Inc.",
+    sector: "Communication Services",
+    description: "Streaming entertainment platform",
+    volatility: 0.032,
+    dividendYield: 0.0,
+    basePrice: 698.3,
+    trend: 0.0003,
+  },
+  {
+    ticker: "DIS",
+    name: "The Walt Disney Co.",
+    sector: "Communication Services",
+    description: "Entertainment, theme parks, and streaming",
+    volatility: 0.022,
+    dividendYield: 0.0,
+    basePrice: 103.2,
+    trend: 0.0002,
+  },
+  {
+    ticker: "SPY",
+    name: "S&P 500 Index Fund",
+    sector: "Index Fund",
+    description: "Tracks the S&P 500 — diversified market exposure",
+    volatility: 0.011,
+    dividendYield: 0.015,
+    basePrice: 538.9,
+    trend: 0.0003,
+  },
+];
+
+export function getStockByTicker(ticker: string): StockDefinition | undefined {
+  return STOCKS.find((s) => s.ticker === ticker);
+}

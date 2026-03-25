@@ -1,15 +1,16 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Future Investment Practice Game API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: game
+    description: Investment game operations
 paths:
   /healthz:
     get:
@@ -24,6 +25,128 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /game/new:
+    post:
+      operationId: createGame
+      tags: [game]
+      summary: Create a new game session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGameRequest"
+      responses:
+        "201":
+          description: Game created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+
+  /game/{sessionId}:
+    get:
+      operationId: getGame
+      tags: [game]
+      summary: Get current game state
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        "404":
+          description: Game not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /game/{sessionId}/advance:
+    post:
+      operationId: advanceDay
+      tags: [game]
+      summary: Advance the game by one day
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Updated game state after advancing one day
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        "404":
+          description: Game not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /game/{sessionId}/trade:
+    post:
+      operationId: executeTrade
+      tags: [game]
+      summary: Buy or sell shares
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradeRequest"
+      responses:
+        "200":
+          description: Trade executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        "400":
+          description: Invalid trade
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Game not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stocks:
+    get:
+      operationId: listStocks
+      tags: [game]
+      summary: List all available stocks
+      responses:
+        "200":
+          description: List of stocks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockInfo"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +157,227 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    CreateGameRequest:
+      type: object
+      properties:
+        startingCash:
+          type: number
+          description: Starting cash amount in dollars
+        playerName:
+          type: string
+          description: Player name
+      required:
+        - startingCash
+        - playerName
+
+    TradeRequest:
+      type: object
+      properties:
+        ticker:
+          type: string
+          description: Stock ticker symbol
+        action:
+          type: string
+          enum: [buy, sell]
+        shares:
+          type: number
+          description: Number of shares to buy or sell
+      required:
+        - ticker
+        - action
+        - shares
+
+    StockInfo:
+      type: object
+      properties:
+        ticker:
+          type: string
+        name:
+          type: string
+        sector:
+          type: string
+        description:
+          type: string
+        volatility:
+          type: number
+          description: Stock volatility factor (higher = more volatile)
+        dividendYield:
+          type: number
+          description: Annual dividend yield as decimal (e.g. 0.02 = 2%)
+      required:
+        - ticker
+        - name
+        - sector
+        - description
+        - volatility
+        - dividendYield
+
+    StockHolding:
+      type: object
+      properties:
+        ticker:
+          type: string
+        shares:
+          type: number
+        avgCostBasis:
+          type: number
+        currentPrice:
+          type: number
+        totalValue:
+          type: number
+        gainLoss:
+          type: number
+        gainLossPercent:
+          type: number
+      required:
+        - ticker
+        - shares
+        - avgCostBasis
+        - currentPrice
+        - totalValue
+        - gainLoss
+        - gainLossPercent
+
+    StockPrice:
+      type: object
+      properties:
+        ticker:
+          type: string
+        price:
+          type: number
+        open:
+          type: number
+        high:
+          type: number
+        low:
+          type: number
+        change:
+          type: number
+        changePercent:
+          type: number
+        volume:
+          type: number
+      required:
+        - ticker
+        - price
+        - open
+        - high
+        - low
+        - change
+        - changePercent
+        - volume
+
+    PortfolioSnapshot:
+      type: object
+      properties:
+        day:
+          type: number
+        date:
+          type: string
+        totalValue:
+          type: number
+        cashBalance:
+          type: number
+        investedValue:
+          type: number
+      required:
+        - day
+        - date
+        - totalValue
+        - cashBalance
+        - investedValue
+
+    TradeRecord:
+      type: object
+      properties:
+        day:
+          type: number
+        date:
+          type: string
+        ticker:
+          type: string
+        action:
+          type: string
+        shares:
+          type: number
+        price:
+          type: number
+        total:
+          type: number
+      required:
+        - day
+        - date
+        - ticker
+        - action
+        - shares
+        - price
+        - total
+
+    GameState:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        playerName:
+          type: string
+        currentDay:
+          type: number
+        currentDate:
+          type: string
+        startingCash:
+          type: number
+        cashBalance:
+          type: number
+        holdings:
+          type: array
+          items:
+            $ref: "#/components/schemas/StockHolding"
+        stockPrices:
+          type: array
+          items:
+            $ref: "#/components/schemas/StockPrice"
+        portfolioHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortfolioSnapshot"
+        tradeHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/TradeRecord"
+        totalPortfolioValue:
+          type: number
+        totalGainLoss:
+          type: number
+        totalGainLossPercent:
+          type: number
+        marketSentiment:
+          type: string
+          enum: [bullish, bearish, neutral]
+        newsEvents:
+          type: array
+          items:
+            type: string
+      required:
+        - sessionId
+        - playerName
+        - currentDay
+        - currentDate
+        - startingCash
+        - cashBalance
+        - holdings
+        - stockPrices
+        - portfolioHistory
+        - tradeHistory
+        - totalPortfolioValue
+        - totalGainLoss
+        - totalGainLossPercent
+        - marketSentiment
+        - newsEvents
