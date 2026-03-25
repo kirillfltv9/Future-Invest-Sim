@@ -186,7 +186,7 @@ export function Landing() {
               <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
               <>
-                Initialize Terminal <ArrowRight className="w-5 h-5" />
+                Start <ArrowRight className="w-5 h-5" />
               </>
             )}
           </button>
