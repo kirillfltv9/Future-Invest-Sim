@@ -202,7 +202,7 @@ export function Dashboard() {
                 {game.isMaxLevel === true ? (
                   <div className="space-y-3">
                     <div className="p-4 rounded-xl bg-yellow-400/10 border border-yellow-400/20 text-yellow-300 text-sm font-medium">
-                      🌍 You've mastered all 10 levels — you're playing at Real Life difficulty!
+                      ☄️ You've conquered all 100 levels. You are truly Immortal.
                     </div>
                     <button
                       onClick={() => setShowLevelComplete(false)}

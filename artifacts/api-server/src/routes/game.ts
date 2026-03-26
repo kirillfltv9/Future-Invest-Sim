@@ -15,7 +15,7 @@ import {
   type MarketSentiment,
 } from "../lib/gameEngine.js";
 import { STOCKS, getStocksByMode } from "../lib/stocks.js";
-import { getLevelConfig } from "../lib/levels.js";
+import { getLevelConfig, MAX_LEVEL } from "../lib/levels.js";
 
 const router: IRouter = Router();
 
@@ -80,7 +80,7 @@ function buildGameResponse(session: typeof gameSessions.$inferSelect) {
     },
     levelGainPercent: parseFloat(levelGainPercent.toFixed(2)),
     levelCompleted,
-    isMaxLevel: level >= 10,
+    isMaxLevel: level >= MAX_LEVEL,
   };
 }
 
@@ -271,7 +271,7 @@ router.post("/game/:sessionId/next-level", async (req, res) => {
   }
 
   const currentLevel = session.level ?? 1;
-  const nextLevel = Math.min(10, currentLevel + 1);
+  const nextLevel = Math.min(MAX_LEVEL, currentLevel + 1);
   const nextLevelConfig = getLevelConfig(nextLevel);
 
   const totalPortfolioValue = computeTotalPortfolioValue(session);
