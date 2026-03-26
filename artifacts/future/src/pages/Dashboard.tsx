@@ -202,7 +202,7 @@ export function Dashboard() {
                 {game.isMaxLevel === true ? (
                   <div className="space-y-3">
                     <div className="p-4 rounded-xl bg-yellow-400/10 border border-yellow-400/20 text-yellow-300 text-sm font-medium">
-                      ☄️ You've conquered all 100 levels. You are truly Immortal.
+                      ☄️ You've conquered all 1000 levels. You are truly Omniscient.
                     </div>
                     <button
                       onClick={() => setShowLevelComplete(false)}
@@ -267,7 +267,6 @@ export function Dashboard() {
                 : "border-white/10 bg-white/5 text-foreground cursor-default"
             )}
           >
-            <span>{levelConfig.badge}</span>
             <span>Lv {level}</span>
             <span className="text-muted-foreground font-normal hidden sm:inline">· {levelConfig.name}</span>
             {game.levelCompleted === true && <Trophy className="w-3 h-3 text-yellow-400 ml-0.5" />}

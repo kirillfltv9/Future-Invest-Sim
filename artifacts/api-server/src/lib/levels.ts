@@ -10,10 +10,9 @@ export type LevelConfig = {
 
 export const MAX_LEVEL = 1000;
 
-// Tier definitions used for names/badges/descriptions
 type Tier = { from: number; to: number; badge: string; prefix: string; descriptions: string[] };
 const TIERS: Tier[] = [
-  { from: 1,   to: 10,  badge: "",    prefix: "",             descriptions: [] }, // handled individually below
+  { from: 1,   to: 10,  badge: "",    prefix: "",             descriptions: [] },
   { from: 11,  to: 50,  badge: "📊",  prefix: "Strategist",   descriptions: ["Read the trends or lose.", "Sector rotation is key.", "Volatility spikes on earnings days.", "The easy money is gone.", "Bull and bear cycles clash.", "Macro events override fundamentals.", "Breakouts are fake. Trust nothing.", "Manage risk tightly.", "Your best trade can be wiped in two bad days.", "Markets punish complacency."] },
   { from: 51,  to: 100, badge: "🦈",  prefix: "Hedge Fund",   descriptions: ["Institutional volatility reigns.", "Momentum strategies fail as often as they succeed.", "News-driven whipsaws hit both sides.", "Correlation breaks down.", "You need 30%+ just to stay ahead.", "Black Friday events lurk.", "Sentiment flips overnight.", "Think institutional or go home.", "Market makers eat retail.", "Full hedge fund pressure."] },
   { from: 101, to: 200, badge: "🧮",  prefix: "Quant",        descriptions: ["Statistical edge required.", "Factor exposures matter.", "20% drawdowns are normal here.", "Mean reversion wars with momentum.", "P&L swings like a rollercoaster.", "Volatility of volatility is real.", "Options-like price behaviour.", "Liquidity events crash prices.", "Data beats emotion.", "Only 1 in 10 quants beat the market."] },
@@ -37,7 +36,6 @@ const LEVEL_1000: LevelConfig = {
   description: "The final level. 50,000% gains required against infinite-volatility chaos. Mathematically near-impossible. Are you the one?",
 };
 
-// Individual Tier-1 levels (1-10)
 const TIER1_CONFIGS: LevelConfig[] = [
   { level: 1,  name: "Tutorial",     badge: "🌱", volatilityMultiplier: 0.12, trendBoost:  0.005,  targetGainPercent: 10,  description: "Near-guaranteed gains. Learn how to buy, sell and watch your portfolio grow." },
   { level: 2,  name: "Beginner",     badge: "📈", volatilityMultiplier: 0.22, trendBoost:  0.0035, targetGainPercent: 15,  description: "Prices still trend up most days — but you'll see your first dips." },
@@ -55,21 +53,17 @@ function getTier(level: number): Tier | null {
   return TIERS.find(t => level >= t.from && level <= t.to) ?? null;
 }
 
-// Smooth exponential-ish curves over the full 1000-level range
 function computeVolatility(level: number): number {
-  // 0.12 at level 1, 25.0 at level 1000 — exponential growth
   const t = (level - 1) / 999;
   return parseFloat((0.12 * Math.pow(25.0 / 0.12, t)).toFixed(4));
 }
 
 function computeTrendBoost(level: number): number {
-  // +0.005 at level 1 → -0.012 at level 1000
   const t = (level - 1) / 999;
   return parseFloat((0.005 - t * 0.017).toFixed(6));
 }
 
 function computeTarget(level: number): number {
-  // 10% at level 1 → 50,000% at level 1000, exponential curve
   const t = (level - 1) / 999;
   return Math.round(10 * Math.pow(5000, t));
 }
@@ -92,7 +86,6 @@ function generateLevel(level: number): LevelConfig {
   };
 }
 
-// Lazy cache — generate on demand instead of building 1000 items at startup
 const _cache = new Map<number, LevelConfig>();
 
 export function getLevelConfig(level: number): LevelConfig {
@@ -103,7 +96,6 @@ export function getLevelConfig(level: number): LevelConfig {
   return config;
 }
 
-// Export a small sample for UI use (no need to expose all 1000)
 export function getLevelInfoForUI(level: number) {
   const c = getLevelConfig(level);
   return { badge: c.badge, name: c.name, targetGainPercent: c.targetGainPercent };
