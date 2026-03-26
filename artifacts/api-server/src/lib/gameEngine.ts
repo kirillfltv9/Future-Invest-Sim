@@ -100,13 +100,21 @@ export function advancePrices(
     const stock = getStockByTicker(sp.ticker);
     if (!stock) return sp;
 
+    // Guard against corrupted / null prices from DB
+    const currentPrice = typeof sp.price === "number" && isFinite(sp.price) && sp.price > 0
+      ? sp.price
+      : stock.basePrice;
+
     const seed = gameSeed + day * 1000 + i * 17;
     const noise = gaussianRandom(seed) * stock.volatility;
     const trendReturn = stock.trend + sentimentBoost;
 
     const dailyReturn = trendReturn + noise;
-    const newPrice = Math.max(0.5, sp.price * (1 + dailyReturn));
-    const open = sp.price;
+    // Use a relative floor (0.1% of base price) rather than hard $0.50 — keeps crypto prices realistic
+    const minPrice = Math.max(0.000001, stock.basePrice * 0.001);
+    const rawPrice = currentPrice * (1 + dailyReturn);
+    const newPrice = isFinite(rawPrice) && rawPrice > 0 ? Math.max(minPrice, rawPrice) : currentPrice;
+    const open = currentPrice;
     const intraVolatility = stock.volatility * 0.5;
     const high = Math.max(open, newPrice) * (1 + Math.abs(gaussianRandom(seed + 500)) * intraVolatility);
     const low = Math.min(open, newPrice) * (1 - Math.abs(gaussianRandom(seed + 501)) * intraVolatility);

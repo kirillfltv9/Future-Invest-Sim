@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { useCreateGame } from "@workspace/api-client-react";
+
 import { setSessionId, getSessionId } from "@/lib/session";
 import { ArrowRight, Wallet, User, TrendingUp, Loader2, Bitcoin, BarChart2, Layers } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
@@ -52,32 +52,31 @@ export function Landing() {
     }
   }, [setLocation]);
 
-  const createGame = useCreateGame({
-    mutation: {
-      onSuccess: (data) => {
-        setSessionId(data.sessionId);
-        setLocation("/dashboard");
-      }
-    }
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-
-    const res = await fetch("/api/game/new", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playerName: name.trim(), startingCash: cash, marketMode: mode }),
-    });
-    const data = await res.json();
-    if (data.sessionId) {
-      setSessionId(data.sessionId);
-      setLocation("/dashboard");
+    if (!name.trim() || isLoading) return;
+    setError(null);
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/game/new", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerName: name.trim(), startingCash: cash, marketMode: mode }),
+      });
+      if (!res.ok) throw new Error("Server error");
+      const data = await res.json();
+      if (data.sessionId) {
+        setSessionId(data.sessionId);
+        setLocation("/dashboard");
+      }
+    } catch {
+      setError("Could not start the game. Please try again.");
+      setIsLoading(false);
     }
   };
-
-  const isLoading = createGame.isPending;
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background">
@@ -190,6 +189,10 @@ export function Landing() {
               </>
             )}
           </button>
+
+          {error && (
+            <p className="mt-3 text-sm text-red-400 text-center">{error}</p>
+          )}
         </form>
       </motion.div>
     </div>
