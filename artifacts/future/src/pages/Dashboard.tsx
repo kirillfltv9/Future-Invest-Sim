@@ -214,15 +214,13 @@ export function Dashboard() {
                 ) : (
                   <div className="space-y-3">
                     {/* Preview next level */}
-                    {level < 10 && (
-                      <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-left text-sm">
-                        <div className="text-xs text-muted-foreground mb-0.5">Next up — Level {level + 1}</div>
-                        <div className="font-semibold text-foreground">
-                          {/* next level name is shown via news feed */}
-                          Harder conditions, new target: +{Math.round(levelConfig.targetGainPercent * 1.25)}%
-                        </div>
+                    <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-left text-sm">
+                      <div className="text-xs text-muted-foreground mb-0.5">Next up — Level {level + 1}</div>
+                      <div className="font-semibold text-foreground">Harder conditions, higher target</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        You'll restart with your original {formatCurrency(game.startingCash).replace(".00", "")} — clean slate, new challenge.
                       </div>
-                    )}
+                    </div>
                     <button
                       onClick={handleNextLevel}
                       disabled={advancingNextLevel}

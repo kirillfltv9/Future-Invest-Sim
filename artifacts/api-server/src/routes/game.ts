@@ -107,6 +107,8 @@ router.post("/game/new", async (req, res) => {
   const rawMode = req.body?.marketMode;
   const marketMode: "stocks" | "crypto" | "mixed" =
     rawMode === "crypto" || rawMode === "mixed" ? rawMode : "stocks";
+  const rawLevel = req.body?.level;
+  const chosenLevel = Number.isInteger(rawLevel) && rawLevel >= 1 && rawLevel <= MAX_LEVEL ? rawLevel : 1;
 
   if (startingCash < 100 || startingCash > 10_000_000) {
     res.status(400).json({ error: "Starting cash must be between $100 and $10,000,000" });
@@ -119,11 +121,11 @@ router.post("/game/new", async (req, res) => {
   const filteredStocks = getStocksByMode(marketMode);
   const initialPrices = generateInitialPrices(gameSeed, filteredStocks);
   const initialSentiment: MarketSentiment = "neutral";
-  const levelConfig = getLevelConfig(1);
+  const levelConfig = getLevelConfig(chosenLevel);
   const modeLabel = marketMode === "crypto" ? "Crypto markets live 24/7 — your digital asset journey begins!" :
                     marketMode === "mixed" ? "Stocks & crypto loaded — diversify wisely!" :
                     "Markets open — your investment journey begins today. Choose wisely!";
-  const initialNews = [`${levelConfig.badge} Level 1: ${levelConfig.name} — ${levelConfig.description}`, modeLabel];
+  const initialNews = [`${levelConfig.badge} Level ${chosenLevel}: ${levelConfig.name} — ${levelConfig.description}`, modeLabel];
 
   const initialSnapshot = computePortfolioSnapshot(0, initialDate, startingCash, [], initialPrices);
 
@@ -141,7 +143,7 @@ router.post("/game/new", async (req, res) => {
     marketSentiment: initialSentiment,
     newsEvents: initialNews,
     marketMode,
-    level: 1,
+    level: chosenLevel,
     levelStartValue: startingCash,
   });
 
@@ -274,20 +276,33 @@ router.post("/game/:sessionId/next-level", async (req, res) => {
   const nextLevel = Math.min(MAX_LEVEL, currentLevel + 1);
   const nextLevelConfig = getLevelConfig(nextLevel);
 
-  const totalPortfolioValue = computeTotalPortfolioValue(session);
-  const levelStartValue = totalPortfolioValue;
+  // Reset to original starting capital with fresh prices — clean slate for each level
+  const startingCash = session.startingCash;
+  const gameSeed = getGameSeed(session.sessionId);
+  const marketMode = (session.marketMode ?? "stocks") as "stocks" | "crypto" | "mixed";
+  const filteredStocks = getStocksByMode(marketMode);
+  const freshPrices = generateInitialPrices(gameSeed + nextLevel * 999, filteredStocks);
+  const freshDate = formatGameDate(0);
+  const freshSnapshot = computePortfolioSnapshot(0, freshDate, startingCash, [], freshPrices);
 
   const levelUpNews = [
     `${nextLevelConfig.badge} Level ${nextLevel} unlocked: ${nextLevelConfig.name}!`,
     nextLevelConfig.description,
-    `New target: grow your portfolio +${nextLevelConfig.targetGainPercent}% from here.`,
+    `Starting fresh with ${startingCash.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}. Target: +${nextLevelConfig.targetGainPercent}%.`,
   ];
 
   await db
     .update(gameSessions)
     .set({
       level: nextLevel,
-      levelStartValue,
+      levelStartValue: startingCash,
+      cashBalance: startingCash,
+      holdings: [],
+      stockPrices: freshPrices,
+      portfolioHistory: [freshSnapshot],
+      currentDay: 0,
+      currentDate: freshDate,
+      marketSentiment: "neutral",
       newsEvents: levelUpNews,
       updatedAt: new Date(),
     })
