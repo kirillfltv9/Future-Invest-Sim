@@ -92,7 +92,9 @@ export function advancePrices(
   prices: StockPrice[],
   day: number,
   gameSeed: number,
-  sentiment: MarketSentiment
+  sentiment: MarketSentiment,
+  volatilityMultiplier = 1.0,
+  trendBoost = 0
 ): StockPrice[] {
   const sentimentBoost = getSentimentMultiplier(sentiment);
 
@@ -106,8 +108,9 @@ export function advancePrices(
       : stock.basePrice;
 
     const seed = gameSeed + day * 1000 + i * 17;
-    const noise = gaussianRandom(seed) * stock.volatility;
-    const trendReturn = stock.trend + sentimentBoost;
+    const effectiveVolatility = stock.volatility * volatilityMultiplier;
+    const noise = gaussianRandom(seed) * effectiveVolatility;
+    const trendReturn = stock.trend + sentimentBoost + trendBoost;
 
     const dailyReturn = trendReturn + noise;
     // Use a relative floor (0.1% of base price) rather than hard $0.50 — keeps crypto prices realistic

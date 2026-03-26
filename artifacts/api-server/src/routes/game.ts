@@ -15,23 +15,35 @@ import {
   type MarketSentiment,
 } from "../lib/gameEngine.js";
 import { STOCKS, getStocksByMode } from "../lib/stocks.js";
+import { getLevelConfig } from "../lib/levels.js";
 
 const router: IRouter = Router();
+
+function computeTotalPortfolioValue(session: typeof gameSessions.$inferSelect) {
+  const prices = session.stockPrices as StockPrice[];
+  const holdings = session.holdings as Holding[];
+  const priceMap = new Map(prices.map((p) => [p.ticker, p.price]));
+  const investedValue = holdings.reduce((sum, h) => sum + h.shares * (priceMap.get(h.ticker) ?? 0), 0);
+  return session.cashBalance + investedValue;
+}
 
 function buildGameResponse(session: typeof gameSessions.$inferSelect) {
   const prices = session.stockPrices as StockPrice[];
   const holdings = session.holdings as Holding[];
-  const priceMap = new Map(prices.map((p) => [p.ticker, p.price]));
 
-  const investedValue = holdings.reduce((sum, h) => {
-    return sum + h.shares * (priceMap.get(h.ticker) ?? 0);
-  }, 0);
-
-  const totalPortfolioValue = session.cashBalance + investedValue;
+  const totalPortfolioValue = computeTotalPortfolioValue(session);
   const totalGainLoss = totalPortfolioValue - session.startingCash;
   const totalGainLossPercent = (totalGainLoss / session.startingCash) * 100;
 
   const enrichedHoldings = computeHoldingsWithCurrentPrices(holdings, prices);
+
+  const level = session.level ?? 1;
+  const levelStartValue = session.levelStartValue ?? session.startingCash;
+  const levelConfig = getLevelConfig(level);
+  const levelGainPercent = levelStartValue > 0
+    ? ((totalPortfolioValue - levelStartValue) / levelStartValue) * 100
+    : 0;
+  const levelCompleted = levelGainPercent >= levelConfig.targetGainPercent;
 
   return {
     sessionId: session.sessionId,
@@ -59,6 +71,16 @@ function buildGameResponse(session: typeof gameSessions.$inferSelect) {
     marketSentiment: session.marketSentiment as MarketSentiment,
     newsEvents: session.newsEvents as string[],
     marketMode: (session.marketMode ?? "stocks") as "stocks" | "crypto" | "mixed",
+    level,
+    levelConfig: {
+      name: levelConfig.name,
+      description: levelConfig.description,
+      targetGainPercent: levelConfig.targetGainPercent,
+      badge: levelConfig.badge,
+    },
+    levelGainPercent: parseFloat(levelGainPercent.toFixed(2)),
+    levelCompleted,
+    isMaxLevel: level >= 10,
   };
 }
 
@@ -97,10 +119,11 @@ router.post("/game/new", async (req, res) => {
   const filteredStocks = getStocksByMode(marketMode);
   const initialPrices = generateInitialPrices(gameSeed, filteredStocks);
   const initialSentiment: MarketSentiment = "neutral";
+  const levelConfig = getLevelConfig(1);
   const modeLabel = marketMode === "crypto" ? "Crypto markets live 24/7 — your digital asset journey begins!" :
                     marketMode === "mixed" ? "Stocks & crypto loaded — diversify wisely!" :
                     "Markets open — your investment journey begins today. Choose wisely!";
-  const initialNews = [modeLabel];
+  const initialNews = [`${levelConfig.badge} Level 1: ${levelConfig.name} — ${levelConfig.description}`, modeLabel];
 
   const initialSnapshot = computePortfolioSnapshot(0, initialDate, startingCash, [], initialPrices);
 
@@ -118,6 +141,8 @@ router.post("/game/new", async (req, res) => {
     marketSentiment: initialSentiment,
     newsEvents: initialNews,
     marketMode,
+    level: 1,
+    levelStartValue: startingCash,
   });
 
   const session = await db.query.gameSessions.findFirst({
@@ -160,6 +185,9 @@ router.post("/game/:sessionId/advance", async (req, res) => {
     return;
   }
 
+  const level = session.level ?? 1;
+  const levelConfig = getLevelConfig(level);
+
   const gameSeed = getGameSeed(session.sessionId);
   let currentDay = session.currentDay;
   let currentPrices = session.stockPrices as StockPrice[];
@@ -176,7 +204,14 @@ router.post("/game/:sessionId/advance", async (req, res) => {
     const sentiment = getNextSentiment(currentDay, gameSeed);
     lastSentiment = sentiment;
 
-    currentPrices = advancePrices(currentPrices, currentDay, gameSeed, sentiment);
+    currentPrices = advancePrices(
+      currentPrices,
+      currentDay,
+      gameSeed,
+      sentiment,
+      levelConfig.volatilityMultiplier,
+      levelConfig.trendBoost
+    );
 
     const dayDividendEvents: string[] = [];
     for (const holding of holdings) {
@@ -212,6 +247,48 @@ router.post("/game/:sessionId/advance", async (req, res) => {
       portfolioHistory: history,
       marketSentiment: lastSentiment,
       newsEvents: lastNews,
+      updatedAt: new Date(),
+    })
+    .where(eq(gameSessions.sessionId, sessionId!));
+
+  const updatedSession = await db.query.gameSessions.findFirst({
+    where: eq(gameSessions.sessionId, sessionId!),
+  });
+
+  res.json(buildGameResponse(updatedSession!));
+});
+
+router.post("/game/:sessionId/next-level", async (req, res) => {
+  const { sessionId } = req.params;
+
+  const session = await db.query.gameSessions.findFirst({
+    where: eq(gameSessions.sessionId, sessionId!),
+  });
+
+  if (!session) {
+    res.status(404).json({ error: "Game session not found" });
+    return;
+  }
+
+  const currentLevel = session.level ?? 1;
+  const nextLevel = Math.min(10, currentLevel + 1);
+  const nextLevelConfig = getLevelConfig(nextLevel);
+
+  const totalPortfolioValue = computeTotalPortfolioValue(session);
+  const levelStartValue = totalPortfolioValue;
+
+  const levelUpNews = [
+    `${nextLevelConfig.badge} Level ${nextLevel} unlocked: ${nextLevelConfig.name}!`,
+    nextLevelConfig.description,
+    `New target: grow your portfolio +${nextLevelConfig.targetGainPercent}% from here.`,
+  ];
+
+  await db
+    .update(gameSessions)
+    .set({
+      level: nextLevel,
+      levelStartValue,
+      newsEvents: levelUpNews,
       updatedAt: new Date(),
     })
     .where(eq(gameSessions.sessionId, sessionId!));
