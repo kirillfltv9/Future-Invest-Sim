@@ -181,14 +181,14 @@ export function Dashboard() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.85, opacity: 0 }}
               transition={{ type: "spring", damping: 20, stiffness: 260 }}
-              className="relative bg-[#0d1117] border border-white/10 rounded-3xl p-8 max-w-md w-full mx-4 text-center shadow-2xl overflow-hidden"
+              className="relative bg-[#0d1117] border border-white/10 rounded-3xl max-w-md w-full mx-4 text-center shadow-2xl overflow-y-auto max-h-[90vh]"
             >
               {/* Glow */}
               <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-yellow-400/20 blur-3xl rounded-full" />
               </div>
 
-              <div className="relative z-10">
+              <div className="relative z-10 p-8">
                 <div className="text-6xl mb-4 animate-bounce">🏆</div>
                 <div className="text-xs uppercase tracking-widest text-yellow-400 font-semibold mb-2">Level Complete</div>
                 <h2 className="text-3xl font-display font-bold mb-1">
@@ -212,13 +212,27 @@ export function Dashboard() {
                 </div>
 
                 {game.isMaxLevel === true ? (
-                  <div className="space-y-3">
-                    <div className="p-4 rounded-xl bg-yellow-400/10 border border-yellow-400/20 text-yellow-300 text-sm font-medium">
-                      ☄️ You've conquered all 1000 levels. You are truly Omniscient.
+                  <div className="space-y-4">
+                    <div className="p-5 rounded-2xl bg-gradient-to-br from-yellow-400/10 to-orange-400/5 border border-yellow-400/20 text-left space-y-3">
+                      <p className="text-yellow-300 font-bold text-base">☄️ You've mastered all 1000 levels.</p>
+                      <p className="text-white/80 text-sm leading-relaxed">
+                        You've trained your mind across every market condition imaginable — from gentle tutorial rallies to cosmic-level volatility that defies all models.
+                      </p>
+                      <p className="text-white/80 text-sm leading-relaxed">
+                        You know how to read sentiment, manage risk, cut losses, and ride winners. That's not a simulation skill anymore — that's real trader instinct.
+                      </p>
+                      <div className="border-t border-yellow-400/20 pt-3">
+                        <p className="text-emerald-400 font-bold text-sm">
+                          It's time to take this into the real world.
+                        </p>
+                        <p className="text-white/60 text-xs mt-1 leading-relaxed">
+                          Open a brokerage account, start small, stay patient, and never stop learning. The market will be waiting for you.
+                        </p>
+                      </div>
                     </div>
                     <button
                       onClick={() => setShowLevelComplete(false)}
-                      className="w-full px-6 py-3 rounded-xl font-semibold bg-white/10 hover:bg-white/15 transition-colors"
+                      className="w-full px-6 py-3 rounded-xl font-semibold bg-white text-black hover:bg-white/90 transition-colors"
                     >
                       Keep Playing
                     </button>
