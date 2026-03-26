@@ -210,7 +210,7 @@ export function getGameSeed(sessionId: string): number {
 }
 
 export function formatGameDate(day: number): string {
-  const startDate = new Date("2024-01-02");
+  const startDate = new Date("2015-03-27");
   startDate.setDate(startDate.getDate() + day);
   return startDate.toISOString().split("T")[0]!;
 }
