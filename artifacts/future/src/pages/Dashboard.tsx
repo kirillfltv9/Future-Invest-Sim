@@ -86,9 +86,12 @@ export function Dashboard() {
     function onKeyDown(e: KeyboardEvent) {
       if (e.code !== "Space") return;
       if (!showLevelComplete) return;
-      if (game?.isMaxLevel === true) return;
       e.preventDefault();
-      handleNextLevel();
+      if (game?.isMaxLevel === true) {
+        setShowLevelComplete(false);
+      } else {
+        handleNextLevel();
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -219,6 +222,9 @@ export function Dashboard() {
                     >
                       Keep Playing
                     </button>
+                    <p className="text-center text-xs text-muted-foreground/50">
+                      or press <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/60 font-mono text-[10px]">Space</kbd> to exit
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
