@@ -10,11 +10,12 @@ interface MarketPanelProps {
   holdings: StockHolding[];
   cashBalance: number;
   sessionId: string;
+  volatilityMultiplier?: number;
 }
 
 type SortMode = "gainers" | "losers" | "default";
 
-export function MarketPanel({ stocks, prices, holdings, cashBalance, sessionId }: MarketPanelProps) {
+export function MarketPanel({ stocks, prices, holdings, cashBalance, sessionId, volatilityMultiplier = 1.0 }: MarketPanelProps) {
   const [search, setSearch] = useState("");
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("gainers");
@@ -111,6 +112,15 @@ export function MarketPanel({ stocks, prices, holdings, cashBalance, sessionId }
           const isNeutral = price.changePercent === 0;
           const isTopGainer = isPositive && sortMode === "gainers" && idx < 3;
 
+          // Max potential daily downside based on stock volatility × level multiplier
+          const baseVol = (stock as StockInfo & { volatility?: number }).volatility ?? 0.02;
+          const maxDownPct = Math.min(99, baseVol * volatilityMultiplier * 1.96 * 100);
+          const downsideLabel = maxDownPct < 1
+            ? `▼ ${maxDownPct.toFixed(2)}%`
+            : maxDownPct < 10
+            ? `▼ ${maxDownPct.toFixed(1)}%`
+            : `▼ ${Math.round(maxDownPct)}%`;
+
           return (
             <div
               key={stock.ticker}
@@ -146,8 +156,9 @@ export function MarketPanel({ stocks, prices, holdings, cashBalance, sessionId }
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground truncate max-w-[120px]">
-                    {stock.name}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground truncate max-w-[90px]">{stock.name}</span>
+                    <span className="text-[10px] text-red-400/80 font-mono font-medium">{downsideLabel}</span>
                   </div>
                 </div>
               </div>

@@ -497,6 +497,7 @@ export function Dashboard() {
               holdings={game.holdings as Parameters<typeof MarketPanel>[0]["holdings"]}
               cashBalance={game.cashBalance}
               sessionId={game.sessionId}
+              volatilityMultiplier={levelConfig.volatilityMultiplier}
             />
           </motion.div>
 
@@ -511,6 +512,7 @@ export function Dashboard() {
           holdings={game.holdings as Parameters<typeof MarketPanel>[0]["holdings"]}
           cashBalance={game.cashBalance}
           sessionId={game.sessionId}
+          volatilityMultiplier={levelConfig.volatilityMultiplier}
         />
       </div>
 
