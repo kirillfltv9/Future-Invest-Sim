@@ -84,6 +84,18 @@ export function Dashboard() {
     }
   }, [game?.levelCompleted]);
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.code !== "Space") return;
+      if (!showLevelComplete) return;
+      if (game?.isMaxLevel === true) return;
+      e.preventDefault();
+      handleNextLevel();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showLevelComplete, game?.isMaxLevel, advancingNextLevel]);
+
   async function handleFastForward(days: number) {
     if (!game || fastForwarding || advanceDay.isPending) return;
     setFastForwarding(true);
@@ -234,6 +246,11 @@ export function Dashboard() {
                         </>
                       )}
                     </button>
+                    {!advancingNextLevel && (
+                      <p className="text-center text-xs text-muted-foreground/50">
+                        or press <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/60 font-mono text-[10px]">Space</kbd>
+                      </p>
+                    )}
                     <button
                       onClick={() => setShowLevelComplete(false)}
                       className="w-full px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground transition-colors"
