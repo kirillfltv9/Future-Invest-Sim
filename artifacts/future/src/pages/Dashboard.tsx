@@ -201,23 +201,12 @@ export function Dashboard() {
 
                 {game.isMaxLevel === true ? (
                   <div className="space-y-3">
-                    <div className="p-4 rounded-xl bg-yellow-400/10 border border-yellow-400/20 text-yellow-300 text-sm font-medium text-center">
-                      🌍 You've mastered all 10 levels — you're a real investor now!
+                    <div className="p-4 rounded-xl bg-yellow-400/10 border border-yellow-400/20 text-yellow-300 text-sm font-medium">
+                      🌍 You've mastered all 10 levels — you're playing at Real Life difficulty!
                     </div>
-                    <p className="text-sm text-muted-foreground text-center">
-                      Ready to try it with real money? Visit:
-                    </p>
-                    <a
-                      href="https://investment.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold bg-gradient-to-r from-yellow-400 to-orange-400 text-black hover:from-yellow-300 hover:to-orange-300 transition-all shadow-[0_0_24px_rgba(251,191,36,0.4)] text-lg"
-                    >
-                      🚀 investment.com
-                    </a>
                     <button
                       onClick={() => setShowLevelComplete(false)}
-                      className="w-full px-4 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      className="w-full px-6 py-3 rounded-xl font-semibold bg-white/10 hover:bg-white/15 transition-colors"
                     >
                       Keep Playing
                     </button>
