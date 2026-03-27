@@ -15,7 +15,11 @@ import {
   type MarketSentiment,
 } from "../lib/gameEngine.js";
 import { STOCKS, getStocksByMode } from "../lib/stocks.js";
-import { getLevelConfig, MAX_LEVEL } from "../lib/levels.js";
+import { getHistoricalEvent } from "../lib/historicalEvents.js";
+
+const GAME_START_DATE = "2015-03-27";
+const GAME_END_DATE   = "2025-03-27";
+function isGameWon(date: string): boolean { return date >= GAME_END_DATE; }
 
 const router: IRouter = Router();
 
@@ -27,6 +31,8 @@ function computeTotalPortfolioValue(session: typeof gameSessions.$inferSelect) {
   return session.cashBalance + investedValue;
 }
 
+const TOTAL_GAME_DAYS = 3653; // 2015-03-27 → 2025-03-27 (10 years incl. 3 leap years)
+
 function buildGameResponse(session: typeof gameSessions.$inferSelect) {
   const prices = session.stockPrices as StockPrice[];
   const holdings = session.holdings as Holding[];
@@ -36,20 +42,17 @@ function buildGameResponse(session: typeof gameSessions.$inferSelect) {
   const totalGainLossPercent = (totalGainLoss / session.startingCash) * 100;
 
   const enrichedHoldings = computeHoldingsWithCurrentPrices(holdings, prices);
-
-  const level = session.level ?? 1;
-  const levelStartValue = session.levelStartValue ?? session.startingCash;
-  const levelConfig = getLevelConfig(level);
-  const levelGainPercent = levelStartValue > 0
-    ? ((totalPortfolioValue - levelStartValue) / levelStartValue) * 100
-    : 0;
-  const levelCompleted = levelGainPercent >= levelConfig.targetGainPercent;
+  const currentDate = session.currentDate ?? GAME_START_DATE;
+  const gameWon = isGameWon(currentDate);
+  const progressDays = Math.min(session.currentDay, TOTAL_GAME_DAYS);
+  const progressPercent = Math.min(100, (progressDays / TOTAL_GAME_DAYS) * 100);
+  const yearsElapsed = parseFloat((progressDays / 365.25).toFixed(1));
 
   return {
     sessionId: session.sessionId,
     playerName: session.playerName,
     currentDay: session.currentDay,
-    currentDate: session.currentDate,
+    currentDate,
     startingCash: session.startingCash,
     cashBalance: session.cashBalance,
     holdings: enrichedHoldings,
@@ -71,16 +74,12 @@ function buildGameResponse(session: typeof gameSessions.$inferSelect) {
     marketSentiment: session.marketSentiment as MarketSentiment,
     newsEvents: session.newsEvents as string[],
     marketMode: (session.marketMode ?? "stocks") as "stocks" | "crypto" | "mixed",
-    level,
-    levelConfig: {
-      name: levelConfig.name,
-      description: levelConfig.description,
-      targetGainPercent: levelConfig.targetGainPercent,
-      badge: levelConfig.badge,
-    },
-    levelGainPercent: parseFloat(levelGainPercent.toFixed(2)),
-    levelCompleted,
-    isMaxLevel: level >= MAX_LEVEL,
+    gameWon,
+    progressDays,
+    progressPercent: parseFloat(progressPercent.toFixed(1)),
+    yearsElapsed,
+    totalDays: TOTAL_GAME_DAYS,
+    daysRemaining: Math.max(0, TOTAL_GAME_DAYS - progressDays),
   };
 }
 
@@ -107,9 +106,6 @@ router.post("/game/new", async (req, res) => {
   const rawMode = req.body?.marketMode;
   const marketMode: "stocks" | "crypto" | "mixed" =
     rawMode === "crypto" || rawMode === "mixed" ? rawMode : "stocks";
-  const rawLevel = req.body?.level;
-  const chosenLevel = Number.isInteger(rawLevel) && rawLevel >= 1 && rawLevel <= MAX_LEVEL ? rawLevel : 1;
-
   if (startingCash < 100 || startingCash > 10_000_000) {
     res.status(400).json({ error: "Starting cash must be between $100 and $10,000,000" });
     return;
@@ -117,15 +113,14 @@ router.post("/game/new", async (req, res) => {
 
   const sessionId = randomUUID();
   const gameSeed = getGameSeed(sessionId);
-  const initialDate = formatGameDate(0);
+  const initialDate = formatGameDate(0); // 2015-03-27
   const filteredStocks = getStocksByMode(marketMode);
   const initialPrices = generateInitialPrices(gameSeed, filteredStocks);
   const initialSentiment: MarketSentiment = "neutral";
-  const levelConfig = getLevelConfig(chosenLevel);
   const modeLabel = marketMode === "crypto" ? "Crypto markets live 24/7 — your digital asset journey begins!" :
                     marketMode === "mixed" ? "Stocks & crypto loaded — diversify wisely!" :
-                    "Markets open — your investment journey begins today. Choose wisely!";
-  const initialNews = [`${levelConfig.badge} Level ${chosenLevel}: ${levelConfig.name} — ${levelConfig.description}`, modeLabel];
+                    "Markets open — March 2015. Survive 10 years of real market history to win.";
+  const initialNews = [modeLabel];
 
   const initialSnapshot = computePortfolioSnapshot(0, initialDate, startingCash, [], initialPrices);
 
@@ -143,7 +138,7 @@ router.post("/game/new", async (req, res) => {
     marketSentiment: initialSentiment,
     newsEvents: initialNews,
     marketMode,
-    level: chosenLevel,
+    level: 1,
     levelStartValue: startingCash,
   });
 
@@ -187,9 +182,6 @@ router.post("/game/:sessionId/advance", async (req, res) => {
     return;
   }
 
-  const level = session.level ?? 1;
-  const levelConfig = getLevelConfig(level);
-
   const gameSeed = getGameSeed(session.sessionId);
   let currentDay = session.currentDay;
   let currentPrices = session.stockPrices as StockPrice[];
@@ -203,16 +195,26 @@ router.post("/game/:sessionId/advance", async (req, res) => {
   for (let i = 0; i < daysToAdvance; i++) {
     currentDay += 1;
     const newDate = formatGameDate(currentDay);
-    const sentiment = getNextSentiment(currentDay, gameSeed);
-    lastSentiment = sentiment;
+
+    // Check for a real historical event on this date
+    const histEvent = getHistoricalEvent(newDate);
+    const effectiveSentiment = histEvent ? histEvent.sentiment : getNextSentiment(currentDay, gameSeed);
+    lastSentiment = effectiveSentiment;
+
+    // Volatility gradually increases over the 10 years (1.0x → 1.8x at year 10)
+    const yearProgress = Math.min(1, currentDay / TOTAL_GAME_DAYS);
+    const timeVolatilityMultiplier = 1.0 + yearProgress * 0.8;
+    const eventVolatilityBoost = histEvent ? histEvent.volatilityBoost : 0;
+    const finalVolatilityMultiplier = timeVolatilityMultiplier + eventVolatilityBoost;
 
     currentPrices = advancePrices(
       currentPrices,
       currentDay,
       gameSeed,
-      sentiment,
-      levelConfig.volatilityMultiplier,
-      levelConfig.trendBoost
+      effectiveSentiment,
+      finalVolatilityMultiplier,
+      0,
+      histEvent ? histEvent.marketShock : 0
     );
 
     const dayDividendEvents: string[] = [];
@@ -233,7 +235,11 @@ router.post("/game/:sessionId/advance", async (req, res) => {
     history.push(snapshot);
 
     if (i === daysToAdvance - 1) {
-      lastNews = [...dayDividendEvents, ...getNewsDayEvents(currentDay, sentiment, gameSeed)];
+      const baseNews = getNewsDayEvents(currentDay, effectiveSentiment, gameSeed);
+      // Historical event headline goes first if present
+      lastNews = histEvent
+        ? [histEvent.headline, ...dayDividendEvents, ...baseNews]
+        : [...dayDividendEvents, ...baseNews];
     }
   }
 

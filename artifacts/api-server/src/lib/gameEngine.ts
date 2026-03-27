@@ -94,7 +94,8 @@ export function advancePrices(
   gameSeed: number,
   sentiment: MarketSentiment,
   volatilityMultiplier = 1.0,
-  trendBoost = 0
+  trendBoost = 0,
+  eventShock = 0
 ): StockPrice[] {
   const sentimentBoost = getSentimentMultiplier(sentiment);
 
@@ -112,7 +113,9 @@ export function advancePrices(
     const noise = gaussianRandom(seed) * effectiveVolatility;
     const trendReturn = stock.trend + sentimentBoost + trendBoost;
 
-    const dailyReturn = trendReturn + noise;
+    // Each stock is affected slightly differently by the event shock (+/- 30% variation)
+    const stockEventShock = eventShock * (0.7 + seededRandom(seed + 777) * 0.6);
+    const dailyReturn = trendReturn + noise + stockEventShock;
     // Use a relative floor (0.1% of base price) rather than hard $0.50 — keeps crypto prices realistic
     const minPrice = Math.max(0.000001, stock.basePrice * 0.001);
     const rawPrice = currentPrice * (1 + dailyReturn);
