@@ -1,0 +1,11 @@
+2015: The Paris Agreement. This landmark accord made climate change a core pillar of national policy for nearly every country, forcing a shift toward green energy transitions.
+2016: The Rise of Populism (Brexit & Trump). The UK’s vote to leave the EU and Donald Trump’s election in the U.S. signaled a massive voter revolt against globalization and "establishment" elites.
+2017: The #MeToo Movement. Starting as a social media trend, it evolved into a political force that changed labor laws, triggered resignations of high-ranking officials, and reshaped gender policy worldwide.
+2018: The US-China Trade War. The shift from cooperation to systemic competition began here. Trade and technology (like 5G) became the primary weapons of 21st-century diplomacy.
+2019: Global Protest Wave. Mass demonstrations in Hong Kong, Chile, Lebanon, and Sudan showed a universal frustration with inequality and corruption, leading to several regime changes.
+2020: COVID-19 State of Emergency. The pandemic led to an unprecedented expansion of executive powers. Governments gained the authority to restrict movement and mandate health measures, changing the social contract.
+2021: The Jan. 6 Capitol Riot. This event symbolized a crisis in Western democratic stability, highlighting how digital polarization and misinformation could threaten the peaceful transfer of power.
+2022: The End of European Neutrality. Following the invasion of Ukraine, countries like Sweden and Finland abandoned decades of neutrality to join NATO, marking the largest shift in European security since WWII.
+2023: Middle East Realignment. The October 7 attacks and the subsequent war in Gaza shattered years of normalization efforts, causing massive political polarization across Western nations and the Global South.
+2024: The Year of the "Super-Election" & the Fall of Assad. With over 60 countries voting, 2024 tested the resilience of democracy. The year ended with the historic collapse of the Bashar al-Assad regime in Syria.
+2025: The Return of Trump & Transactional Diplomacy. Donald Trump’s return to the White House solidified a "Me First" approach to foreign policy, prioritizing bilateral deals over long-standing international alliances
