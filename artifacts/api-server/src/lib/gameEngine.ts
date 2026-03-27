@@ -55,7 +55,7 @@ function gaussianRandom(seed: number): number {
   const u1 = seededRandom(seed);
   const u2 = seededRandom(seed + 100);
   const g = Math.sqrt(-2 * Math.log(u1 + 0.0001)) * Math.cos(2 * Math.PI * u2);
-  return Math.max(-2.2, Math.min(2.2, g));
+  return Math.max(-1.8, Math.min(1.8, g));
 }
 
 export function generateInitialPrices(gameSeed: number, stockList = STOCKS): StockPrice[] {
