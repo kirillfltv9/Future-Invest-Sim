@@ -205,7 +205,7 @@ router.post("/game/:sessionId/advance", async (req, res) => {
     const yearProgress = Math.min(1, currentDay / TOTAL_GAME_DAYS);
     const timeVolatilityMultiplier = 1.0 + yearProgress * 0.8;
     const BRUTAL_EVENTS = new Set(["2020-03-11", "2022-02-24"]);
-    const EVENT_DAMPENER = histEvent && BRUTAL_EVENTS.has(histEvent.date) ? 1.0 : 0.40;
+    const EVENT_DAMPENER = histEvent && BRUTAL_EVENTS.has(histEvent.date) ? 1.0 : 0.60;
     const eventVolatilityBoost = histEvent ? histEvent.volatilityBoost * EVENT_DAMPENER : 0;
     const finalVolatilityMultiplier = timeVolatilityMultiplier + eventVolatilityBoost;
 
