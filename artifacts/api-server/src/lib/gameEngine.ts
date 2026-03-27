@@ -55,7 +55,7 @@ function gaussianRandom(seed: number): number {
   const u1 = seededRandom(seed);
   const u2 = seededRandom(seed + 100);
   const g = Math.sqrt(-2 * Math.log(u1 + 0.0001)) * Math.cos(2 * Math.PI * u2);
-  return Math.max(-1.4, Math.min(1.9, g));
+  return Math.max(-1.7, Math.min(1.9, g));
 }
 
 export function generateInitialPrices(gameSeed: number, stockList = STOCKS): StockPrice[] {
@@ -84,8 +84,8 @@ function getSentiment(day: number, gameSeed: number): MarketSentiment {
 }
 
 function getSentimentMultiplier(sentiment: MarketSentiment): number {
-  if (sentiment === "bullish") return 0.0011;
-  if (sentiment === "bearish") return -0.0006;
+  if (sentiment === "bullish") return 0.0009;
+  if (sentiment === "bearish") return -0.0008;
   return 0;
 }
 

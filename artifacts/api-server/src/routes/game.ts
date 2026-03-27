@@ -209,7 +209,7 @@ router.post("/game/:sessionId/advance", async (req, res) => {
       "2020-03-12", "2020-03-16", "2020-03-18", "2020-03-20",
       "2022-02-24",
     ]);
-    const EVENT_DAMPENER = histEvent && BRUTAL_EVENTS.has(histEvent.date) ? 1.0 : 0.60;
+    const EVENT_DAMPENER = histEvent && BRUTAL_EVENTS.has(histEvent.date) ? 1.0 : 0.75;
     const eventVolatilityBoost = histEvent ? histEvent.volatilityBoost * EVENT_DAMPENER : 0;
     const finalVolatilityMultiplier = timeVolatilityMultiplier + eventVolatilityBoost;
 
