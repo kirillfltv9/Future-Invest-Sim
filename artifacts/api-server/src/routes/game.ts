@@ -204,7 +204,9 @@ router.post("/game/:sessionId/advance", async (req, res) => {
     // Volatility gradually increases over the 10 years (1.0x → 1.8x at year 10)
     const yearProgress = Math.min(1, currentDay / TOTAL_GAME_DAYS);
     const timeVolatilityMultiplier = 1.0 + yearProgress * 0.8;
-    const eventVolatilityBoost = histEvent ? histEvent.volatilityBoost : 0;
+    const BRUTAL_EVENTS = new Set(["2020-03-11", "2022-02-24"]);
+    const EVENT_DAMPENER = histEvent && BRUTAL_EVENTS.has(histEvent.date) ? 1.0 : 0.82;
+    const eventVolatilityBoost = histEvent ? histEvent.volatilityBoost * EVENT_DAMPENER : 0;
     const finalVolatilityMultiplier = timeVolatilityMultiplier + eventVolatilityBoost;
 
     currentPrices = advancePrices(
@@ -214,7 +216,7 @@ router.post("/game/:sessionId/advance", async (req, res) => {
       effectiveSentiment,
       finalVolatilityMultiplier,
       0,
-      histEvent ? histEvent.marketShock : 0
+      histEvent ? histEvent.marketShock * EVENT_DAMPENER : 0
     );
 
     const dayDividendEvents: string[] = [];
