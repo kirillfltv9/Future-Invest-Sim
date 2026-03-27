@@ -266,60 +266,6 @@ router.post("/game/:sessionId/advance", async (req, res) => {
   res.json(buildGameResponse(updatedSession!));
 });
 
-router.post("/game/:sessionId/next-level", async (req, res) => {
-  const { sessionId } = req.params;
-
-  const session = await db.query.gameSessions.findFirst({
-    where: eq(gameSessions.sessionId, sessionId!),
-  });
-
-  if (!session) {
-    res.status(404).json({ error: "Game session not found" });
-    return;
-  }
-
-  const currentLevel = session.level ?? 1;
-  const nextLevel = Math.min(MAX_LEVEL, currentLevel + 1);
-  const nextLevelConfig = getLevelConfig(nextLevel);
-
-  // Reset to original starting capital with fresh prices — clean slate for each level
-  const startingCash = session.startingCash;
-  const gameSeed = getGameSeed(session.sessionId);
-  const marketMode = (session.marketMode ?? "stocks") as "stocks" | "crypto" | "mixed";
-  const filteredStocks = getStocksByMode(marketMode);
-  const freshPrices = generateInitialPrices(gameSeed + nextLevel * 999, filteredStocks);
-  const freshDate = formatGameDate(0);
-  const freshSnapshot = computePortfolioSnapshot(0, freshDate, startingCash, [], freshPrices);
-
-  const levelUpNews = [
-    `${nextLevelConfig.badge} Level ${nextLevel} unlocked: ${nextLevelConfig.name}!`,
-    nextLevelConfig.description,
-    `Starting fresh with ${startingCash.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}. Target: +${nextLevelConfig.targetGainPercent}%.`,
-  ];
-
-  await db
-    .update(gameSessions)
-    .set({
-      level: nextLevel,
-      levelStartValue: startingCash,
-      cashBalance: startingCash,
-      holdings: [],
-      stockPrices: freshPrices,
-      portfolioHistory: [freshSnapshot],
-      currentDay: 0,
-      currentDate: freshDate,
-      marketSentiment: "neutral",
-      newsEvents: levelUpNews,
-      updatedAt: new Date(),
-    })
-    .where(eq(gameSessions.sessionId, sessionId!));
-
-  const updatedSession = await db.query.gameSessions.findFirst({
-    where: eq(gameSessions.sessionId, sessionId!),
-  });
-
-  res.json(buildGameResponse(updatedSession!));
-});
 
 router.post("/game/:sessionId/trade", async (req, res) => {
   const { sessionId } = req.params;
