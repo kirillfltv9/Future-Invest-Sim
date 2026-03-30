@@ -213,8 +213,8 @@ export function getGameSeed(sessionId: string): number {
   return Math.abs(hash);
 }
 
-export function formatGameDate(day: number): string {
-  const startDate = new Date("2015-03-27");
+export function formatGameDate(day: number, startDateStr = "2015-03-27"): string {
+  const startDate = new Date(startDateStr);
   startDate.setDate(startDate.getDate() + day);
   return startDate.toISOString().split("T")[0]!;
 }

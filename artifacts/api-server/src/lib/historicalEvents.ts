@@ -170,10 +170,70 @@ const HISTORICAL_EVENTS: HistoricalEvent[] = [
   { date: "2025-03-05", headline: "Naval skirmish in South China Sea between China and Philippines — tension rises", sentiment: "bearish", marketShock: -0.015, volatilityBoost: 0.63 },
 ];
 
+const FUTURE_EVENTS: HistoricalEvent[] = [
+  // ─── 2026 ──────────────────────────────────────────────────────────────────
+  { date: "2026-03-15", headline: "AI tools quietly replace entry-level jobs globally — unemployment ticks up", sentiment: "bearish", marketShock: -0.015, volatilityBoost: 0.4 },
+  { date: "2026-06-20", headline: "Inflation remains stubbornly high despite central bank efforts — cost of living crisis deepens", sentiment: "bearish", marketShock: -0.012, volatilityBoost: 0.35 },
+  { date: "2026-09-10", headline: "Tech giants report record AI revenue — sector surges on automation adoption", sentiment: "bullish", marketShock: 0.018, volatilityBoost: 0.25 },
+  { date: "2026-11-05", headline: "Military tensions rise unexpectedly — cyberattacks briefly disrupt banking systems", sentiment: "bearish", marketShock: -0.020, volatilityBoost: 0.65 },
+
+  // ─── 2027 ──────────────────────────────────────────────────────────────────
+  { date: "2027-01-20", headline: "Cyberattacks disrupt banking infrastructure across multiple nations — hours of outages", sentiment: "bearish", marketShock: -0.028, volatilityBoost: 0.9 },
+  { date: "2027-04-12", headline: "Military escalation in contested border regions — geopolitical risk spikes sharply", sentiment: "bearish", marketShock: -0.035, volatilityBoost: 1.2 },
+  { date: "2027-08-05", headline: "AI companies hit $5 trillion combined market cap — tech sector euphoria", sentiment: "bullish", marketShock: 0.022, volatilityBoost: 0.3 },
+  { date: "2027-10-18", headline: "Supply chains breaking noticeably — shortages hit consumer goods globally", sentiment: "bearish", marketShock: -0.018, volatilityBoost: 0.55 },
+
+  // ─── 2028 ──────────────────────────────────────────────────────────────────
+  { date: "2028-02-14", headline: "🚨 LARGE-SCALE CONFLICT ERUPTS — worst geopolitical crisis since Ukraine invasion", sentiment: "bearish", marketShock: -0.055, volatilityBoost: 2.5 },
+  { date: "2028-04-01", headline: "🚨 GLOBAL FINANCIAL STRESS: War disrupts supply chains — prices jump, panic buying begins", sentiment: "bearish", marketShock: -0.042, volatilityBoost: 1.8 },
+  { date: "2028-06-20", headline: "Emergency G20 economic stabilisation package announced — markets bounce briefly", sentiment: "bullish", marketShock: 0.025, volatilityBoost: 0.7 },
+  { date: "2028-09-05", headline: "AI content regulation passed globally — tech giants face heavy compliance costs", sentiment: "bearish", marketShock: -0.016, volatilityBoost: 0.4 },
+
+  // ─── 2029 ──────────────────────────────────────────────────────────────────
+  { date: "2029-03-10", headline: "🚨 GLOBAL CONFLICT: 'Multi-region war' declared — markets in sustained historic decline", sentiment: "bearish", marketShock: -0.048, volatilityBoost: 2.2 },
+  { date: "2029-07-15", headline: "🚨 CYBERWAR: Payment systems disrupted worldwide — banking delays, mass panic", sentiment: "bearish", marketShock: -0.038, volatilityBoost: 1.6 },
+  { date: "2029-11-01", headline: "Secret peace negotiations confirmed by multiple governments — markets bounce on hope", sentiment: "bullish", marketShock: 0.022, volatilityBoost: 0.65 },
+
+  // ─── 2030 ──────────────────────────────────────────────────────────────────
+  { date: "2030-02-01", headline: "Economies fully shift to wartime footing — civilian goods rationed, growth stalls", sentiment: "bearish", marketShock: -0.025, volatilityBoost: 0.9 },
+  { date: "2030-08-10", headline: "Digital currencies adopted by 30+ nations — fintech sector surges on legitimacy", sentiment: "bullish", marketShock: 0.022, volatilityBoost: 0.35 },
+  { date: "2030-12-05", headline: "First major ceasefire announced — global relief rally, markets surge", sentiment: "bullish", marketShock: 0.038, volatilityBoost: 0.8 },
+
+  // ─── 2031 ──────────────────────────────────────────────────────────────────
+  { date: "2031-04-20", headline: "Formal peace negotiations open — end of major conflict officially in sight", sentiment: "bullish", marketShock: 0.042, volatilityBoost: 0.7 },
+  { date: "2031-09-01", headline: "AI unemployment peaks — governments announce massive global retraining funds", sentiment: "bearish", marketShock: -0.018, volatilityBoost: 0.45 },
+
+  // ─── 2032 ──────────────────────────────────────────────────────────────────
+  { date: "2032-03-15", headline: "Peace treaty signed — largest geopolitical recovery rally in a decade", sentiment: "bullish", marketShock: 0.055, volatilityBoost: 1.0 },
+  { date: "2032-07-20", headline: "Global reconstruction investment hits $10 trillion — markets surge on rebuilding boom", sentiment: "bullish", marketShock: 0.030, volatilityBoost: 0.5 },
+
+  // ─── 2033 ──────────────────────────────────────────────────────────────────
+  { date: "2033-05-01", headline: "Economic recovery accelerates — pre-war growth levels fully restored", sentiment: "bullish", marketShock: 0.025, volatilityBoost: 0.35 },
+  { date: "2033-10-15", headline: "AI stabilises global productivity — record corporate earnings across all sectors", sentiment: "bullish", marketShock: 0.020, volatilityBoost: 0.25 },
+
+  // ─── 2034 ──────────────────────────────────────────────────────────────────
+  { date: "2034-02-20", headline: "Infrastructure boom drives decade-high growth — construction and tech sectors surge", sentiment: "bullish", marketShock: 0.022, volatilityBoost: 0.3 },
+  { date: "2034-08-01", headline: "Financial systems reach new stability peak — long-term confidence fully restored", sentiment: "bullish", marketShock: 0.015, volatilityBoost: 0.2 },
+
+  // ─── 2035 ──────────────────────────────────────────────────────────────────
+  { date: "2035-01-15", headline: "Decade-end stability report: markets at all-time highs — consistency wins", sentiment: "bullish", marketShock: 0.030, volatilityBoost: 0.3 },
+  { date: "2035-03-20", headline: "AI-human collaboration reaches full maturity — historic productivity era begins", sentiment: "bullish", marketShock: 0.025, volatilityBoost: 0.25 },
+];
+
 const EVENT_MAP = new Map<string, HistoricalEvent>(
   HISTORICAL_EVENTS.map(e => [e.date, e])
 );
 
-export function getHistoricalEvent(date: string): HistoricalEvent | null {
+const FUTURE_EVENT_MAP = new Map<string, HistoricalEvent>(
+  FUTURE_EVENTS.map(e => [e.date, e])
+);
+
+export function getHistoricalEvent(date: string, era: "classic" | "future" = "classic"): HistoricalEvent | null {
+  if (era === "future") return FUTURE_EVENT_MAP.get(date) ?? null;
   return EVENT_MAP.get(date) ?? null;
 }
+
+export const FUTURE_BRUTAL_DATES = new Set([
+  "2028-02-14", "2028-04-01",
+  "2029-03-10", "2029-07-15",
+]);
