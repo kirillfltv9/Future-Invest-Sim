@@ -1,91 +1,93 @@
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { TrendingUp, AlertTriangle, ArrowLeft, ArrowRight, Cpu, DollarSign, Globe, Landmark, Dumbbell, Swords } from "lucide-react";
+import { TrendingUp, AlertTriangle, ArrowLeft, ArrowRight, Cpu, DollarSign, Globe, Swords, Flame, HeartHandshake } from "lucide-react";
 
 type YearData = {
   year: number;
+  tag?: { label: string; color: string };
   themes: { category: string; icon: React.ReactNode; color: string; events: string[] }[];
 };
 
 const YEAR_DATA: YearData[] = [
   {
     year: 2026,
+    tag: { label: "⚔️ WW3 BEGINS", color: "bg-red-900/60 text-red-300 border border-red-700/60" },
     themes: [
-      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["AI tools quietly replace entry-level jobs", "Big tech feels even bigger", "Privacy concerns grow"] },
-      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Inflation slows but nothing feels cheap", "Housing still out of reach for many", "Investing becomes more normalised"] },
-      { category: "Geopolitics", icon: <Swords className="w-4 h-4" />, color: "text-red-400", events: ["Military tensions rise faster than expected", "Cyberattacks disrupt banking apps", "Markets react sharply to headlines"] },
+      { category: "Conflict", icon: <Swords className="w-4 h-4" />, color: "text-red-400", events: ["WW3 declared — multiple superpowers mobilise", "UN Security Council collapses", "Nuclear standoff triggers global circuit breakers", "Cyberattacks cripple NATO banking systems"] },
+      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Capital controls across 12 major markets", "Energy infrastructure attacked — oil spikes 80%", "G20 emergency wartime summit called"] },
+      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["AI begins replacing entry-level jobs globally", "Tech sector dwarfed by geopolitical chaos"] },
     ],
   },
   {
     year: 2027,
+    tag: { label: "🔥 WW3 ESCALATES", color: "bg-red-900/60 text-red-300 border border-red-700/60" },
     themes: [
-      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["AI built into almost every platform", "Job competition intensifies", "Many 'safe' careers start feeling unstable"] },
-      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Wages rise slightly — but not dramatically", "Debt becomes a bigger concern", "More people work multiple income streams"] },
-      { category: "Conflict", icon: <Swords className="w-4 h-4" />, color: "text-red-400", events: ["Sudden escalation dominates global news", "Cyberattacks hit infrastructure — not just websites", "Supply chains start breaking noticeably"] },
+      { category: "Conflict", icon: <Swords className="w-4 h-4" />, color: "text-red-400", events: ["Second front opens in Asia-Pacific", "Shipping lanes closed — global trade collapses", "Drone strikes devastate industrial zones", "Global cyberwar — ATMs emptied worldwide"] },
+      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Manufacturing output falls 35%", "Food supply chains severed — rationing begins in 40+ countries", "Payment networks down for days"] },
     ],
   },
   {
     year: 2028,
+    tag: { label: "💀 WW3 PEAK", color: "bg-red-950/80 text-red-200 border border-red-800/60" },
     themes: [
-      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["AI-generated content indistinguishable from real", "Governments regulate AI more strictly", "Jobs shift heavily toward tech-assisted roles"] },
-      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Economic gaps widen significantly", "Passive income becomes a common goal", "Ownership (homes, cars) declines"] },
-      { category: "Conflict", icon: <Swords className="w-4 h-4" />, color: "text-red-400", events: ["Large-scale conflict breaks out rapidly", "Financial systems feel less stable", "Prices jump quickly — not gradually"] },
+      { category: "Conflict", icon: <Flame className="w-4 h-4" />, color: "text-red-400", events: ["Most destructive year of the conflict", "Economies fully on wartime footing", "Civilian infrastructure collapses in multiple regions", "Refugee crisis reaches 200 million"] },
+      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Emergency wartime currencies issued", "Hyperinflation hits 8 nations", "Secret ceasefire backchannel emerges — brief market hope"] },
     ],
   },
   {
     year: 2029,
+    tag: { label: "🕊️ WW3 WINDING DOWN", color: "bg-amber-900/50 text-amber-300 border border-amber-700/60" },
     themes: [
-      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["AI assistants feel like personal companions", "Many companies operate with smaller teams", "Layoffs feel more frequent but less shocking"] },
-      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Investing is highly accessible but emotionally challenging", "Side income becomes almost expected", "More services go subscription-based"] },
-      { category: "Conflict", icon: <Swords className="w-4 h-4" />, color: "text-red-400", events: ["War spreads across multiple regions", "Cyberwar disrupts daily life regularly", "Energy becomes unreliable in some areas"] },
+      { category: "Conflict", icon: <Swords className="w-4 h-4" />, color: "text-amber-400", events: ["Final major offensive — heaviest casualties of the war", "Armistice framework proposed", "Three-month ceasefire begins", "Ceasefire holds — international observers deployed"] },
+      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["First concrete steps toward peace", "Markets rally strongly on ceasefire news", "Preliminary peace terms agreed"] },
     ],
   },
   {
     year: 2030,
+    tag: { label: "✅ WW3 ENDS", color: "bg-emerald-900/50 text-emerald-300 border border-emerald-700/60" },
     themes: [
-      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["AI fully integrated into work and daily life", "Traditional jobs largely replaced by new roles", "Investing becomes almost invisible — automated"] },
-      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Digital currencies adopted by dozens of nations", "Economic uncertainty still exists — but people adapt", "You feel more responsible for your own future"] },
-      { category: "Conflict", icon: <Swords className="w-4 h-4" />, color: "text-red-400", events: ["Conflict becomes entrenched — a constant background", "Economies shift to wartime footing", "First major ceasefire hopes emerge"] },
+      { category: "Peace", icon: <HeartHandshake className="w-4 h-4" />, color: "text-emerald-400", events: ["WW3 officially ends — peace treaty signed in Geneva", "Greatest relief rally in market history", "$20 trillion global reconstruction fund announced"] },
+      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Wartime digital currencies become permanent standard", "40+ nations adopt unified digital finance framework", "Reconstruction spending begins globally"] },
     ],
   },
   {
     year: 2031,
+    tag: { label: "🔨 Rebuilding", color: "bg-blue-900/40 text-blue-300 border border-blue-700/50" },
     themes: [
-      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["AI decision-making becomes more influential", "Work becomes more results-based than time-based", "Digital overload peaks — people seek offline experiences"] },
-      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["War fatigue everywhere — markets stabilise slightly", "Economies stabilise in a reduced state", "Innovation driven by necessity"] },
-      { category: "Recovery", icon: <Globe className="w-4 h-4" />, color: "text-amber-400", events: ["Diplomatic efforts quietly increase", "Rumours of negotiations circulate", "Small de-escalations begin"] },
+      { category: "Recovery", icon: <Globe className="w-4 h-4" />, color: "text-blue-400", events: ["Post-war infrastructure boom begins", "Record peacetime reconstruction spending", "AI-assisted rebuilding accelerates recovery"] },
+      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["AI unemployment peaks — $5 trillion retraining programme launched", "Productivity surges in war-torn regions"] },
     ],
   },
   {
     year: 2032,
+    tag: { label: "📈 Recovery", color: "bg-blue-900/40 text-blue-300 border border-blue-700/50" },
     themes: [
-      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["AI reaches new capability — creativity becomes valued", "Human skills gain importance again", "Balance between digital and real life begins"] },
-      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Significant ceasefire negotiations begin", "Markets respond cautiously but positively", "Reconstruction investment kicks off"] },
-      { category: "Recovery", icon: <Globe className="w-4 h-4" />, color: "text-amber-400", events: ["Peace treaty framework agreed", "Guarded optimism returns to markets", "Global cooperation improves in key areas"] },
+      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Pre-war output fully restored — fastest recovery in modern history", "New global trade agreements replace pre-war framework", "Markets surge on stability"] },
+      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["AI takes centre stage as peacetime tool", "Creativity and human skills gain value again"] },
     ],
   },
   {
     year: 2033,
+    tag: { label: "🌱 Growth", color: "bg-violet-900/40 text-violet-300 border border-violet-700/50" },
     themes: [
-      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["Technology stabilises after rapid growth", "Work becomes more personalised", "Investing feels routine, not exciting"] },
-      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Economic recovery accelerates broadly", "Pre-war growth levels largely restored", "Financial literacy becomes widespread"] },
-      { category: "Recovery", icon: <Globe className="w-4 h-4" />, color: "text-amber-400", events: ["Formal peace processes take shape", "Reconstruction becomes a national priority", "Travel begins reopening globally"] },
+      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Post-war growth era begins", "Corporate earnings at decade highs across all sectors"] },
+      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["AI stabilises global productivity", "Record earnings across all sectors"] },
     ],
   },
   {
     year: 2034,
+    tag: { label: "🌱 Growth", color: "bg-violet-900/40 text-violet-300 border border-violet-700/50" },
     themes: [
-      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["AI becomes background infrastructure", "Work-life balance improves slightly", "Technology supports rather than overwhelms"] },
-      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Infrastructure boom drives decade-high growth", "Spending becomes more flexible again", "Long-term economic stability established"] },
-      { category: "World", icon: <Globe className="w-4 h-4" />, color: "text-amber-400", events: ["Reconstruction accelerates globally", "People prioritise stability over risk", "Economic trust at decade high"] },
+      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Infrastructure boom drives decade-high growth", "Construction and tech sectors surge", "Financial systems reach new stability peak"] },
+      { category: "World", icon: <Globe className="w-4 h-4" />, color: "text-blue-400", events: ["Long-term confidence fully restored", "People avoid extreme risks", "Life feels deliberately more stable"] },
     ],
   },
   {
     year: 2035,
+    tag: { label: "✨ Stability", color: "bg-white/10 text-white/80 border border-white/20" },
     themes: [
-      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["Pace of change finally feels slower", "AI everywhere — but mostly invisible", "Markets at historic highs"] },
-      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Decade-end stability reached", "Investing just a normal life habit", "It was never about predicting — just staying in it"] },
-      { category: "World", icon: <Globe className="w-4 h-4" />, color: "text-amber-400", events: ["War widely considered over", "Lasting global changes in power and policy", "Surviving it changed how we see everything"] },
+      { category: "Economy", icon: <DollarSign className="w-4 h-4" />, color: "text-emerald-400", events: ["Markets at all-time highs — those who stayed in won", "Investing is just a normal life habit", "It was never about predicting — just staying in it"] },
+      { category: "AI & Tech", icon: <Cpu className="w-4 h-4" />, color: "text-blue-400", events: ["AI-human collaboration reaches full maturity", "New era of human productivity begins"] },
     ],
   },
 ];
@@ -95,7 +97,7 @@ export function FuturePage() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-violet-950/20 via-background to-background pointer-events-none" />
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-red-950/20 via-background to-background pointer-events-none" />
 
       <div className="relative z-10 max-w-3xl mx-auto px-6 py-10">
 
@@ -110,13 +112,13 @@ export function FuturePage() {
         </div>
 
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-violet-500/20 text-violet-400 mb-4">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-500/20 text-red-400 mb-4">
             <TrendingUp className="w-7 h-7" />
           </div>
-          <h1 className="text-4xl font-display font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-violet-300 to-white">
+          <h1 className="text-4xl font-display font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-red-300 via-white to-violet-300">
             Future Mode
           </h1>
-          <p className="text-muted-foreground">Invest through 2025–2035 based on predicted world events</p>
+          <p className="text-muted-foreground">Invest through 2025–2035 · WW3 starts 2026 · Ends 2030</p>
         </div>
 
         {/* Disclaimer */}
@@ -135,7 +137,7 @@ export function FuturePage() {
         </motion.div>
 
         {/* Timeline */}
-        <div className="space-y-6 mb-10">
+        <div className="space-y-5 mb-10">
           {YEAR_DATA.map((yearData, i) => (
             <motion.div
               key={yearData.year}
@@ -145,10 +147,15 @@ export function FuturePage() {
               className="glass-panel rounded-2xl p-5"
             >
               <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl font-display font-bold text-violet-300">{yearData.year}</span>
+                <span className="text-2xl font-display font-bold text-white">{yearData.year}</span>
+                {yearData.tag && (
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${yearData.tag.color}`}>
+                    {yearData.tag.label}
+                  </span>
+                )}
                 <div className="h-px flex-1 bg-white/5" />
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {yearData.themes.map((theme) => (
                   <div key={theme.category} className="space-y-1.5">
                     <div className={`flex items-center gap-1.5 text-xs font-semibold ${theme.color}`}>
@@ -173,11 +180,11 @@ export function FuturePage() {
         <div className="text-center">
           <button
             onClick={() => setLocation("/setup?era=future")}
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-lg transition-all hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] hover:-translate-y-1 active:translate-y-0"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-red-700 hover:bg-red-600 text-white font-bold text-lg transition-all hover:shadow-[0_0_30px_rgba(220,38,38,0.4)] hover:-translate-y-1 active:translate-y-0"
           >
             Start Future Mode <ArrowRight className="w-5 h-5" />
           </button>
-          <p className="text-xs text-muted-foreground/60 mt-3">Starts March 2025 · Ends March 2035</p>
+          <p className="text-xs text-muted-foreground/60 mt-3">Starts March 2025 · WW3 2026–2030 · Recovery 2030–2035</p>
         </div>
       </div>
     </div>
