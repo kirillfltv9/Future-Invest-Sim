@@ -171,48 +171,48 @@ const HISTORICAL_EVENTS: HistoricalEvent[] = [
 ];
 
 const FUTURE_EVENTS: HistoricalEvent[] = [
-  // ─── 2026: WW3 BEGINS ──────────────────────────────────────────────────────
+  // ─── 2026: TURBULENCE BEGINS ───────────────────────────────────────────────
   { date: "2026-03-15", headline: "AI tools quietly replace entry-level jobs globally — unemployment ticks up", sentiment: "bearish", marketShock: -0.015, volatilityBoost: 0.4 },
-  { date: "2026-05-10", headline: "🚨 WW3 DECLARED — multiple superpowers mobilise; UN Security Council collapses", sentiment: "bearish", marketShock: -0.072, volatilityBoost: 3.2 },
-  { date: "2026-06-18", headline: "🚨 WW3: Nuclear standoff rattles markets — circuit breakers triggered worldwide", sentiment: "bearish", marketShock: -0.085, volatilityBoost: 3.8 },
-  { date: "2026-08-02", headline: "🚨 WW3: Cyberattacks cripple banking systems across NATO nations — week-long outages", sentiment: "bearish", marketShock: -0.055, volatilityBoost: 2.5 },
-  { date: "2026-10-14", headline: "Emergency G20 wartime summit — coordinated capital controls, trading halted in 12 markets", sentiment: "bearish", marketShock: -0.038, volatilityBoost: 1.8 },
-  { date: "2026-12-01", headline: "🚨 WW3: First winter offensive — energy infrastructure attacked, oil spikes 80%", sentiment: "bearish", marketShock: -0.048, volatilityBoost: 2.2 },
+  { date: "2026-05-10", headline: "🚨 GLOBAL TURBULENCE — major powers mobilise; international institutions under severe strain", sentiment: "bearish", marketShock: -0.072, volatilityBoost: 3.2 },
+  { date: "2026-06-18", headline: "🚨 TURBULENCE: Nuclear standoff rattles markets — circuit breakers triggered worldwide", sentiment: "bearish", marketShock: -0.085, volatilityBoost: 3.8 },
+  { date: "2026-08-02", headline: "🚨 TURBULENCE: Cyberattacks cripple banking systems across major nations — week-long outages", sentiment: "bearish", marketShock: -0.055, volatilityBoost: 2.5 },
+  { date: "2026-10-14", headline: "Emergency G20 crisis summit — coordinated capital controls, trading halted in 12 markets", sentiment: "bearish", marketShock: -0.038, volatilityBoost: 1.8 },
+  { date: "2026-12-01", headline: "🚨 TURBULENCE: Energy infrastructure attacked globally — oil spikes 80%", sentiment: "bearish", marketShock: -0.048, volatilityBoost: 2.2 },
 
-  // ─── 2027: WW3 ESCALATES ───────────────────────────────────────────────────
-  { date: "2027-02-08", headline: "🚨 WW3: Second front opens in Asia-Pacific — shipping lanes closed, trade collapses", sentiment: "bearish", marketShock: -0.065, volatilityBoost: 2.8 },
-  { date: "2027-04-20", headline: "🚨 WW3: Drone strikes hit major industrial zones — manufacturing output falls 35%", sentiment: "bearish", marketShock: -0.050, volatilityBoost: 2.3 },
-  { date: "2027-07-03", headline: "🚨 WW3: Global cyberwar — payment networks down for days, ATMs emptied worldwide", sentiment: "bearish", marketShock: -0.060, volatilityBoost: 2.6 },
-  { date: "2027-10-11", headline: "🚨 WW3: Food supply chains severed — rationing begins in 40+ countries", sentiment: "bearish", marketShock: -0.042, volatilityBoost: 1.9 },
+  // ─── 2027: TURBULENCE ESCALATES ────────────────────────────────────────────
+  { date: "2027-02-08", headline: "🚨 TURBULENCE: Conflict spreads to Asia-Pacific — shipping lanes closed, trade collapses", sentiment: "bearish", marketShock: -0.065, volatilityBoost: 2.8 },
+  { date: "2027-04-20", headline: "🚨 TURBULENCE: Drone strikes devastate industrial zones — manufacturing output falls 35%", sentiment: "bearish", marketShock: -0.050, volatilityBoost: 2.3 },
+  { date: "2027-07-03", headline: "🚨 TURBULENCE: Global cyberwar — payment networks down for days, ATMs emptied worldwide", sentiment: "bearish", marketShock: -0.060, volatilityBoost: 2.6 },
+  { date: "2027-10-11", headline: "🚨 TURBULENCE: Food supply chains severed — rationing begins in 40+ countries", sentiment: "bearish", marketShock: -0.042, volatilityBoost: 1.9 },
 
-  // ─── 2028: WW3 AT PEAK ─────────────────────────────────────────────────────
-  { date: "2028-01-15", headline: "🚨 WW3 PEAK: Most destructive year of the conflict — economies fully on wartime footing", sentiment: "bearish", marketShock: -0.058, volatilityBoost: 2.7 },
-  { date: "2028-04-22", headline: "🚨 WW3: Civilian infrastructure collapses in multiple regions — refugee crisis at 200 million", sentiment: "bearish", marketShock: -0.052, volatilityBoost: 2.4 },
-  { date: "2028-08-09", headline: "🚨 WW3: Emergency wartime currencies issued — hyperinflation in 8 nations", sentiment: "bearish", marketShock: -0.045, volatilityBoost: 2.0 },
-  { date: "2028-11-30", headline: "Secret ceasefire backchannel confirmed — brief market rally on hope", sentiment: "bullish", marketShock: 0.028, volatilityBoost: 0.9 },
+  // ─── 2028: TURBULENCE AT PEAK ──────────────────────────────────────────────
+  { date: "2028-01-15", headline: "🚨 PEAK TURBULENCE: Most destructive year — economies fully in crisis footing", sentiment: "bearish", marketShock: -0.058, volatilityBoost: 2.7 },
+  { date: "2028-04-22", headline: "🚨 TURBULENCE: Civilian infrastructure collapses — refugee crisis reaches 200 million", sentiment: "bearish", marketShock: -0.052, volatilityBoost: 2.4 },
+  { date: "2028-08-09", headline: "🚨 TURBULENCE: Emergency currencies issued — hyperinflation hits 8 nations", sentiment: "bearish", marketShock: -0.045, volatilityBoost: 2.0 },
+  { date: "2028-11-30", headline: "Secret peace backchannel confirmed — brief market rally on hope", sentiment: "bullish", marketShock: 0.028, volatilityBoost: 0.9 },
 
-  // ─── 2029: WW3 WINDING DOWN ────────────────────────────────────────────────
-  { date: "2029-02-14", headline: "🚨 WW3: Final major offensive launched — heaviest casualties of the war", sentiment: "bearish", marketShock: -0.048, volatilityBoost: 2.1 },
-  { date: "2029-05-20", headline: "Armistice framework proposed — first concrete step toward ending the war", sentiment: "bullish", marketShock: 0.035, volatilityBoost: 1.0 },
+  // ─── 2029: TURBULENCE WINDING DOWN ─────────────────────────────────────────
+  { date: "2029-02-14", headline: "🚨 TURBULENCE: Final major escalation — heaviest disruption of the crisis", sentiment: "bearish", marketShock: -0.048, volatilityBoost: 2.1 },
+  { date: "2029-05-20", headline: "Armistice framework proposed — first concrete step toward stability", sentiment: "bullish", marketShock: 0.035, volatilityBoost: 1.0 },
   { date: "2029-09-01", headline: "Preliminary peace terms agreed — three-month ceasefire begins", sentiment: "bullish", marketShock: 0.045, volatilityBoost: 1.2 },
   { date: "2029-12-10", headline: "Ceasefire holds — international observers deployed, markets rally strongly", sentiment: "bullish", marketShock: 0.040, volatilityBoost: 1.0 },
 
-  // ─── 2030: WW3 ENDS ────────────────────────────────────────────────────────
-  { date: "2030-03-15", headline: "🕊️ WW3 OFFICIALLY ENDS — peace treaty signed in Geneva; decade's greatest relief rally", sentiment: "bullish", marketShock: 0.075, volatilityBoost: 2.0 },
+  // ─── 2030: TURBULENCE ENDS ─────────────────────────────────────────────────
+  { date: "2030-03-15", headline: "🕊️ STABILITY RESTORED — peace treaty signed in Geneva; decade's greatest relief rally", sentiment: "bullish", marketShock: 0.075, volatilityBoost: 2.0 },
   { date: "2030-06-20", headline: "Global reconstruction fund of $20 trillion announced — largest in history", sentiment: "bullish", marketShock: 0.048, volatilityBoost: 1.1 },
-  { date: "2030-10-05", headline: "Digital currencies adopted by 40+ nations during wartime become permanent standard", sentiment: "bullish", marketShock: 0.030, volatilityBoost: 0.5 },
+  { date: "2030-10-05", headline: "Digital currencies adopted by 40+ nations during crisis become permanent standard", sentiment: "bullish", marketShock: 0.030, volatilityBoost: 0.5 },
 
   // ─── 2031: REBUILDING ──────────────────────────────────────────────────────
-  { date: "2031-02-18", headline: "Post-war reconstruction boom — infrastructure spending hits record peacetime levels", sentiment: "bullish", marketShock: 0.042, volatilityBoost: 0.7 },
-  { date: "2031-07-04", headline: "AI-assisted rebuilding accelerates recovery — productivity surges in war-torn regions", sentiment: "bullish", marketShock: 0.028, volatilityBoost: 0.4 },
+  { date: "2031-02-18", headline: "Post-crisis reconstruction boom — infrastructure spending hits record peacetime levels", sentiment: "bullish", marketShock: 0.042, volatilityBoost: 0.7 },
+  { date: "2031-07-04", headline: "AI-assisted rebuilding accelerates recovery — productivity surges across regions", sentiment: "bullish", marketShock: 0.028, volatilityBoost: 0.4 },
   { date: "2031-11-20", headline: "AI unemployment finally peaks — governments launch $5 trillion global retraining programme", sentiment: "bearish", marketShock: -0.015, volatilityBoost: 0.4 },
 
   // ─── 2032: RECOVERY ────────────────────────────────────────────────────────
-  { date: "2032-03-10", headline: "Pre-war economic output fully restored — fastest recovery in modern history", sentiment: "bullish", marketShock: 0.038, volatilityBoost: 0.6 },
-  { date: "2032-09-15", headline: "New global trade agreements replace pre-war framework — markets surge on stability", sentiment: "bullish", marketShock: 0.030, volatilityBoost: 0.4 },
+  { date: "2032-03-10", headline: "Pre-crisis economic output fully restored — fastest recovery in modern history", sentiment: "bullish", marketShock: 0.038, volatilityBoost: 0.6 },
+  { date: "2032-09-15", headline: "New global trade agreements signed — markets surge on stability", sentiment: "bullish", marketShock: 0.030, volatilityBoost: 0.4 },
 
   // ─── 2033 ──────────────────────────────────────────────────────────────────
-  { date: "2033-05-01", headline: "Post-war growth era begins — corporate earnings at decade highs across all sectors", sentiment: "bullish", marketShock: 0.025, volatilityBoost: 0.3 },
+  { date: "2033-05-01", headline: "Post-crisis growth era begins — corporate earnings at decade highs across all sectors", sentiment: "bullish", marketShock: 0.025, volatilityBoost: 0.3 },
   { date: "2033-10-15", headline: "AI stabilises global productivity — record earnings across all sectors", sentiment: "bullish", marketShock: 0.020, volatilityBoost: 0.25 },
 
   // ─── 2034 ──────────────────────────────────────────────────────────────────
