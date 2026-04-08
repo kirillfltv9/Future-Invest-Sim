@@ -15,14 +15,16 @@ import {
   type MarketSentiment,
 } from "../lib/gameEngine.js";
 import { STOCKS, getStocksByMode } from "../lib/stocks.js";
-import { getHistoricalEvent, FUTURE_BRUTAL_DATES } from "../lib/historicalEvents.js";
+import { getHistoricalEvent, FUTURE_BRUTAL_DATES, PRESENT_BRUTAL_DATES } from "../lib/historicalEvents.js";
 
-type GameEra = "classic" | "future";
-const ERA_START: Record<GameEra, string> = { classic: "2015-03-27", future: "2025-03-27" };
-const ERA_END:   Record<GameEra, string> = { classic: "2025-03-27", future: "2035-03-27" };
+type GameEra = "classic" | "future" | "present";
+const ERA_START: Record<GameEra, string> = { classic: "2015-03-27", future: "2025-03-27", present: "2025-03-27" };
+const ERA_END:   Record<GameEra, string> = { classic: "2025-03-27", future: "2035-03-27", present: "2027-03-27" };
+const ERA_TOTAL_DAYS: Record<GameEra, number> = { classic: 3653, future: 3653, present: 730 };
 const ERA_LABEL: Record<GameEra, string> = {
   classic: "Markets open — March 2015. Survive 10 years of real market history to win.",
   future:  "Future Mode — March 2025. Your predicted decade begins. Survive until 2035.",
+  present: "Present Mode — March 2025. AI boom, oil shocks, stagflation. Survive 2 years of the near future.",
 };
 const CLASSIC_BRUTAL_DATES = new Set([
   "2020-02-24", "2020-02-27", "2020-03-09", "2020-03-11",
@@ -30,7 +32,9 @@ const CLASSIC_BRUTAL_DATES = new Set([
   "2022-02-24",
 ]);
 function getEra(session: { gameEra: string }): GameEra {
-  return session.gameEra === "future" ? "future" : "classic";
+  if (session.gameEra === "future") return "future";
+  if (session.gameEra === "present") return "present";
+  return "classic";
 }
 function isGameWon(date: string, era: GameEra): boolean { return date >= ERA_END[era]; }
 
@@ -44,12 +48,11 @@ function computeTotalPortfolioValue(session: typeof gameSessions.$inferSelect) {
   return session.cashBalance + investedValue;
 }
 
-const TOTAL_GAME_DAYS = 3653; // 10 years incl. 3 leap years
-
 function buildGameResponse(session: typeof gameSessions.$inferSelect) {
   const prices = session.stockPrices as StockPrice[];
   const holdings = session.holdings as Holding[];
   const era = getEra(session);
+  const totalGameDays = ERA_TOTAL_DAYS[era];
 
   const totalPortfolioValue = computeTotalPortfolioValue(session);
   const totalGainLoss = totalPortfolioValue - session.startingCash;
@@ -58,8 +61,8 @@ function buildGameResponse(session: typeof gameSessions.$inferSelect) {
   const enrichedHoldings = computeHoldingsWithCurrentPrices(holdings, prices);
   const currentDate = session.currentDate ?? ERA_START[era];
   const gameWon = isGameWon(currentDate, era);
-  const progressDays = Math.min(session.currentDay, TOTAL_GAME_DAYS);
-  const progressPercent = Math.min(100, (progressDays / TOTAL_GAME_DAYS) * 100);
+  const progressDays = Math.min(session.currentDay, totalGameDays);
+  const progressPercent = Math.min(100, (progressDays / totalGameDays) * 100);
   const yearsElapsed = parseFloat((progressDays / 365.25).toFixed(1));
 
   return {
@@ -93,8 +96,8 @@ function buildGameResponse(session: typeof gameSessions.$inferSelect) {
     progressDays,
     progressPercent: parseFloat(progressPercent.toFixed(1)),
     yearsElapsed,
-    totalDays: TOTAL_GAME_DAYS,
-    daysRemaining: Math.max(0, TOTAL_GAME_DAYS - progressDays),
+    totalDays: totalGameDays,
+    daysRemaining: Math.max(0, totalGameDays - progressDays),
   };
 }
 
@@ -122,7 +125,7 @@ router.post("/game/new", async (req, res) => {
   const marketMode: "stocks" | "crypto" | "mixed" =
     rawMode === "crypto" || rawMode === "mixed" ? rawMode : "stocks";
   const rawEra = req.body?.gameEra;
-  const gameEra: GameEra = rawEra === "future" ? "future" : "classic";
+  const gameEra: GameEra = rawEra === "future" ? "future" : rawEra === "present" ? "present" : "classic";
   if (startingCash < 100 || startingCash > 10_000_000) {
     res.status(400).json({ error: "Starting cash must be between $100 and $10,000,000" });
     return;
@@ -136,6 +139,8 @@ router.post("/game/new", async (req, res) => {
   const initialSentiment: MarketSentiment = "neutral";
   const baseLabel = gameEra === "future"
     ? ERA_LABEL.future
+    : gameEra === "present"
+    ? ERA_LABEL.present
     : marketMode === "crypto" ? "Crypto markets live 24/7 — your digital asset journey begins!"
     : marketMode === "mixed" ? "Stocks & crypto loaded — diversify wisely!"
     : ERA_LABEL.classic;
@@ -214,7 +219,9 @@ router.post("/game/:sessionId/advance", async (req, res) => {
 
   const sessionEra = getEra(session);
   const eraStart = ERA_START[sessionEra];
-  const brutalDates = sessionEra === "future" ? FUTURE_BRUTAL_DATES : CLASSIC_BRUTAL_DATES;
+  const brutalDates = sessionEra === "future" ? FUTURE_BRUTAL_DATES
+    : sessionEra === "present" ? PRESENT_BRUTAL_DATES
+    : CLASSIC_BRUTAL_DATES;
 
   for (let i = 0; i < daysToAdvance; i++) {
     currentDay += 1;
@@ -225,8 +232,8 @@ router.post("/game/:sessionId/advance", async (req, res) => {
     const effectiveSentiment = histEvent ? histEvent.sentiment : getNextSentiment(currentDay, gameSeed);
     lastSentiment = effectiveSentiment;
 
-    // Volatility gradually increases over the 10 years (1.0x → 1.8x at year 10)
-    const yearProgress = Math.min(1, currentDay / TOTAL_GAME_DAYS);
+    // Volatility gradually increases over the game duration (1.0x → 1.8x at end)
+    const yearProgress = Math.min(1, currentDay / ERA_TOTAL_DAYS[sessionEra]);
     const timeVolatilityMultiplier = 1.0 + yearProgress * 0.8;
     const EVENT_DAMPENER = histEvent && brutalDates.has(histEvent.date) ? 1.0 : 0.75;
     const eventVolatilityBoost = histEvent ? histEvent.volatilityBoost * EVENT_DAMPENER : 0;

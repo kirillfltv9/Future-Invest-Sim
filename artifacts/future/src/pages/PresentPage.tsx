@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Cpu, DollarSign, Globe, Landmark, Dumbbell, Swords, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Cpu, DollarSign, Globe, Landmark, Dumbbell, Swords, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Phase = { label: string; vibe: string; points: string[]; result: string[] };
@@ -271,7 +271,13 @@ export function PresentPage() {
             <h1 className="text-2xl font-display font-bold text-white">2025 → 2026 Outlook</h1>
             <p className="text-xs text-muted-foreground mt-0.5">What the world looks like right now and where it's heading</p>
           </div>
-          <div className="w-20" />
+          <button
+            onClick={() => setLocation("/setup?era=present")}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-all hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-0.5"
+          >
+            <TrendingUp className="w-4 h-4" />
+            Invest Now
+          </button>
         </div>
 
         {/* Phase selector */}
@@ -375,6 +381,23 @@ export function PresentPage() {
           >
             Next <ArrowRight className="w-4 h-4" />
           </button>
+        </div>
+
+        {/* Start Investing CTA */}
+        <div className="mt-10 glass-panel rounded-3xl p-8 text-center border border-emerald-500/20 bg-emerald-500/5">
+          <h3 className="text-xl font-bold text-white mb-2">Ready to invest through it?</h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+            Now that you know what's coming — AI bubbles, oil shocks, stagflation — can your portfolio survive 2 years of the near future?
+          </p>
+          <button
+            onClick={() => setLocation("/setup?era=present")}
+            className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-lg transition-all hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-1 active:translate-y-0"
+          >
+            <TrendingUp className="w-5 h-5" />
+            Start Present Mode
+            <ArrowRight className="w-5 h-5" />
+          </button>
+          <p className="text-xs text-muted-foreground/50 mt-4">2025 → 2027 · 730 days · Based on real predictions</p>
         </div>
       </div>
     </div>

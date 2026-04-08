@@ -2,11 +2,11 @@ import { useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion } from "framer-motion";
 import { setSessionId } from "@/lib/session";
-import { ArrowRight, Wallet, User, TrendingUp, Loader2, Bitcoin, BarChart2, Layers, ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowRight, Wallet, User, TrendingUp, Loader2, Bitcoin, BarChart2, Layers, ArrowLeft, Sparkles, BookOpen } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 
 type MarketMode = "stocks" | "crypto" | "mixed";
-type GameEra = "classic" | "future";
+type GameEra = "classic" | "future" | "present";
 
 const QUICK_AMOUNTS = [1000, 5000, 10000, 25000, 100000];
 
@@ -26,7 +26,8 @@ export function SetupPage() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const params = new URLSearchParams(search);
-  const era: GameEra = params.get("era") === "future" ? "future" : "classic";
+  const rawEra = params.get("era");
+  const era: GameEra = rawEra === "future" ? "future" : rawEra === "present" ? "present" : "classic";
 
   const [name, setName] = useState("");
   const [cashInput, setCashInput] = useState("10000");
@@ -63,7 +64,7 @@ export function SetupPage() {
     }
   };
 
-  const backTo = era === "future" ? "/future" : "/";
+  const backTo = era === "future" ? "/future" : era === "present" ? "/present" : "/";
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background">
@@ -94,17 +95,24 @@ export function SetupPage() {
             "inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5",
             era === "future"
               ? "bg-violet-500/20 text-violet-400 shadow-[0_0_30px_rgba(139,92,246,0.3)]"
+              : era === "present"
+              ? "bg-emerald-500/20 text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)]"
               : "bg-primary/20 text-primary shadow-[0_0_30px_rgba(var(--primary),0.3)]"
           )}>
-            {era === "future" ? <Sparkles className="w-8 h-8" /> : <TrendingUp className="w-8 h-8" />}
+            {era === "future" ? <Sparkles className="w-8 h-8" /> : era === "present" ? <BookOpen className="w-8 h-8" /> : <TrendingUp className="w-8 h-8" />}
           </div>
           <h1 className="text-5xl font-display font-bold mb-3 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">
-            {era === "future" ? "Future Mode" : "Future."}
+            {era === "future" ? "Future Mode" : era === "present" ? "Present Mode" : "Future."}
           </h1>
           {era === "future" ? (
             <>
               <p className="text-lg text-muted-foreground">Invest through your predicted 2025–2035.</p>
               <p className="text-sm text-muted-foreground/60 mt-1">AI boom. Global conflict. Recovery. Can your portfolio survive it?</p>
+            </>
+          ) : era === "present" ? (
+            <>
+              <p className="text-lg text-muted-foreground">Invest through 2025–2027 — the near future.</p>
+              <p className="text-sm text-muted-foreground/60 mt-1">AI bubble. Oil shocks. Stagflation. Survive 2 turbulent years.</p>
             </>
           ) : (
             <>
@@ -201,12 +209,14 @@ export function SetupPage() {
               "w-full py-4 rounded-xl font-bold text-lg transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2",
               era === "future"
                 ? "bg-violet-600 hover:bg-violet-500 text-white hover:shadow-[0_0_30px_rgba(139,92,246,0.4)]"
+                : era === "present"
+                ? "bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]"
                 : "bg-white text-black hover:bg-white/90 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
             )}
           >
             {isLoading
               ? <Loader2 className="w-6 h-6 animate-spin" />
-              : <>{era === "future" ? "Start Future Mode" : "Start Journey"} <ArrowRight className="w-5 h-5" /></>
+              : <>{era === "future" ? "Start Future Mode" : era === "present" ? "Start Present Mode" : "Start Journey"} <ArrowRight className="w-5 h-5" /></>
             }
           </button>
 

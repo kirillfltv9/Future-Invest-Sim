@@ -224,6 +224,38 @@ const FUTURE_EVENTS: HistoricalEvent[] = [
   { date: "2035-03-20", headline: "AI-human collaboration reaches full maturity — new era of human productivity begins", sentiment: "bullish", marketShock: 0.025, volatilityBoost: 0.25 },
 ];
 
+const PRESENT_EVENTS: HistoricalEvent[] = [
+  // ─── 2025: AI Boom + Overheated Economy ───────────────────────────────────
+  { date: "2025-04-10", headline: "AI startup raises $4B in record seed round — GPU shortage deepens, NVIDIA surges", sentiment: "bullish", marketShock: 0.018, volatilityBoost: 0.35 },
+  { date: "2025-05-15", headline: "Every major company now claims to be 'AI-powered' — analyst skepticism quietly grows", sentiment: "bullish", marketShock: 0.012, volatilityBoost: 0.22 },
+  { date: "2025-06-20", headline: "Consumer spending hits record highs — economy running hot, inflation creeps back up", sentiment: "bullish", marketShock: 0.010, volatilityBoost: 0.18 },
+  { date: "2025-07-08", headline: "Record NFL streaming deal signed — sports media stocks surge, global fan engagement peaks", sentiment: "bullish", marketShock: 0.008, volatilityBoost: 0.15 },
+  { date: "2025-08-12", headline: "AI hype reaches fever pitch — valuations described as 'completely untethered from reality'", sentiment: "bullish", marketShock: 0.015, volatilityBoost: 0.28 },
+  { date: "2025-09-05", headline: "US-China tariff escalation — trade tension pushes markets into sudden volatility", sentiment: "bearish", marketShock: -0.018, volatilityBoost: 0.50 },
+
+  // ─── Late 2025: Cracks forming ────────────────────────────────────────────
+  { date: "2025-10-20", headline: "Consumer spending slows — housing market cools, corporate layoffs begin across tech sector", sentiment: "bearish", marketShock: -0.015, volatilityBoost: 0.40 },
+  { date: "2025-11-15", headline: "AI bubble concerns spike — overhyped startups crack under scrutiny, VC funding dries up", sentiment: "bearish", marketShock: -0.020, volatilityBoost: 0.50 },
+  { date: "2025-12-03", headline: "Emerging markets face currency crises — global risk sentiment deteriorates sharply", sentiment: "bearish", marketShock: -0.017, volatilityBoost: 0.46 },
+
+  // ─── Early 2026: Reality check ────────────────────────────────────────────
+  { date: "2026-01-22", headline: "🚨 AI CORRECTION: Major AI companies miss earnings badly — bubble bursts, historic tech selloff", sentiment: "bearish", marketShock: -0.055, volatilityBoost: 2.2 },
+  { date: "2026-02-28", headline: "🚨 OIL SHOCK: Middle East escalation sends oil above $110 — inflation surges back, panic sets in", sentiment: "bearish", marketShock: -0.038, volatilityBoost: 1.5 },
+  { date: "2026-03-18", headline: "IMF downgrades global growth — stagflation risk rises, central banks halt rate cuts entirely", sentiment: "bearish", marketShock: -0.022, volatilityBoost: 0.75 },
+
+  // ─── Mid 2026: Stagflation era ────────────────────────────────────────────
+  { date: "2026-04-15", headline: "G20 inflation hits 4% — central banks keep rates high, economy stuck in the slow lane", sentiment: "bearish", marketShock: -0.015, volatilityBoost: 0.50 },
+  { date: "2026-05-28", headline: "AI regulation era begins — governments impose strict disclosure and transparency rules globally", sentiment: "bearish", marketShock: -0.012, volatilityBoost: 0.35 },
+  { date: "2026-07-10", headline: "Western and Eastern power blocs solidify — multipolar world raises long-term geopolitical risk", sentiment: "bearish", marketShock: -0.018, volatilityBoost: 0.46 },
+  { date: "2026-08-20", headline: "Major sports star injury triggers viewership drop — overvalued sports stocks correct from highs", sentiment: "bearish", marketShock: -0.009, volatilityBoost: 0.22 },
+
+  // ─── Late 2026: Stabilisation ─────────────────────────────────────────────
+  { date: "2026-09-25", headline: "Inflation shows first signs of easing — Fed signals possible rate cuts, markets begin to recover", sentiment: "bullish", marketShock: 0.022, volatilityBoost: 0.60 },
+  { date: "2026-10-30", headline: "Supply chains stabilise — governments announce stimulus packages, slow recovery underway", sentiment: "bullish", marketShock: 0.015, volatilityBoost: 0.35 },
+  { date: "2026-11-18", headline: "AI matures into enterprise infrastructure — stable growth replaces hype, real utility emerges", sentiment: "bullish", marketShock: 0.012, volatilityBoost: 0.28 },
+  { date: "2026-12-20", headline: "Year-end stability: markets recover from correction — those who stayed in are rewarded", sentiment: "bullish", marketShock: 0.018, volatilityBoost: 0.35 },
+];
+
 const EVENT_MAP = new Map<string, HistoricalEvent>(
   HISTORICAL_EVENTS.map(e => [e.date, e])
 );
@@ -232,18 +264,28 @@ const FUTURE_EVENT_MAP = new Map<string, HistoricalEvent>(
   FUTURE_EVENTS.map(e => [e.date, e])
 );
 
-export function getHistoricalEvent(date: string, era: "classic" | "future" = "classic"): HistoricalEvent | null {
+const PRESENT_EVENT_MAP = new Map<string, HistoricalEvent>(
+  PRESENT_EVENTS.map(e => [e.date, e])
+);
+
+export function getHistoricalEvent(date: string, era: "classic" | "future" | "present" = "classic"): HistoricalEvent | null {
   if (era === "future") return FUTURE_EVENT_MAP.get(date) ?? null;
+  if (era === "present") return PRESENT_EVENT_MAP.get(date) ?? null;
   return EVENT_MAP.get(date) ?? null;
 }
 
 export const FUTURE_BRUTAL_DATES = new Set([
-  // 2026 — WW3 starts
+  // 2026 — Turbulence starts
   "2026-05-10", "2026-06-18", "2026-08-02", "2026-12-01",
-  // 2027 — WW3 escalates
+  // 2027 — Turbulence escalates
   "2027-02-08", "2027-04-20", "2027-07-03", "2027-10-11",
-  // 2028 — WW3 peak
+  // 2028 — Turbulence peak
   "2028-01-15", "2028-04-22", "2028-08-09",
-  // 2029 — final offensive
+  // 2029 — final escalation
   "2029-02-14",
+]);
+
+export const PRESENT_BRUTAL_DATES = new Set([
+  "2026-01-22", // AI correction
+  "2026-02-28", // Oil shock
 ]);
