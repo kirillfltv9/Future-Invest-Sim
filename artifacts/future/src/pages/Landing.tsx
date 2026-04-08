@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { getSessionId } from "@/lib/session";
-import { TrendingUp, Monitor, Sparkles, ArrowRight } from "lucide-react";
+import { TrendingUp, Monitor, Sparkles, ArrowRight, BookOpen } from "lucide-react";
 
 export function Landing() {
   const [, setLocation] = useLocation();
@@ -84,8 +84,8 @@ export function Landing() {
           <p className="text-white font-medium">That's how it really works.</p>
         </div>
 
-        {/* Two CTA Buttons */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* CTA Buttons */}
+        <div className="grid grid-cols-3 gap-3">
           <button
             onClick={() => setLocation("/setup")}
             className="flex flex-col items-center gap-2 py-5 px-4 rounded-2xl bg-white text-black font-bold transition-all hover:bg-white/90 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:-translate-y-1 active:translate-y-0"
@@ -95,6 +95,17 @@ export function Landing() {
               Start
             </div>
             <span className="text-xs font-normal text-black/60">Real history · 2015–2025</span>
+          </button>
+
+          <button
+            onClick={() => setLocation("/present")}
+            className="flex flex-col items-center gap-2 py-5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:-translate-y-1 active:translate-y-0"
+          >
+            <div className="flex items-center gap-2 text-lg">
+              <BookOpen className="w-5 h-5" />
+              Present
+            </div>
+            <span className="text-xs font-normal text-white/60">2025–2026 outlook</span>
           </button>
 
           <button
