@@ -111,8 +111,8 @@ export function SetupPage() {
             </>
           ) : era === "present" ? (
             <>
-              <p className="text-lg text-muted-foreground">Invest through 2025–2027 — the near future.</p>
-              <p className="text-sm text-muted-foreground/60 mt-1">AI bubble. Oil shocks. Stagflation. Survive 2 turbulent years.</p>
+              <p className="text-lg text-muted-foreground">Invest through 2025–2026 — the near future.</p>
+              <p className="text-sm text-muted-foreground/60 mt-1">AI bubble. Oil shocks. Stagflation. Can your portfolio survive?</p>
             </>
           ) : (
             <>

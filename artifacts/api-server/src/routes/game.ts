@@ -19,12 +19,12 @@ import { getHistoricalEvent, FUTURE_BRUTAL_DATES, PRESENT_BRUTAL_DATES } from ".
 
 type GameEra = "classic" | "future" | "present";
 const ERA_START: Record<GameEra, string> = { classic: "2015-03-27", future: "2025-03-27", present: "2025-03-27" };
-const ERA_END:   Record<GameEra, string> = { classic: "2025-03-27", future: "2035-03-27", present: "2027-03-27" };
-const ERA_TOTAL_DAYS: Record<GameEra, number> = { classic: 3653, future: 3653, present: 730 };
+const ERA_END:   Record<GameEra, string> = { classic: "2025-03-27", future: "2035-03-27", present: "2026-12-31" };
+const ERA_TOTAL_DAYS: Record<GameEra, number> = { classic: 3653, future: 3653, present: 644 };
 const ERA_LABEL: Record<GameEra, string> = {
   classic: "Markets open — March 2015. Survive 10 years of real market history to win.",
   future:  "Future Mode — March 2025. Your predicted decade begins. Survive until 2035.",
-  present: "Present Mode — March 2025. AI boom, oil shocks, stagflation. Survive 2 years of the near future.",
+  present: "Present Mode — March 2025. AI boom, oil shocks, stagflation. Survive through 2026.",
 };
 const CLASSIC_BRUTAL_DATES = new Set([
   "2020-02-24", "2020-02-27", "2020-03-09", "2020-03-11",

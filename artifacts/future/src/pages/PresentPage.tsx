@@ -397,7 +397,7 @@ export function PresentPage() {
             Start Present Mode
             <ArrowRight className="w-5 h-5" />
           </button>
-          <p className="text-xs text-muted-foreground/50 mt-4">2025 → 2027 · 730 days · Based on real predictions</p>
+          <p className="text-xs text-muted-foreground/50 mt-4">2025 → 2026 · 644 days · Based on real predictions</p>
         </div>
       </div>
     </div>
