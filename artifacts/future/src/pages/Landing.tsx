@@ -94,7 +94,7 @@ export function Landing() {
               <TrendingUp className="w-5 h-5" />
               Start
             </div>
-            <span className="text-xs font-normal text-black/60">Real history · 2015–2025</span>
+            <span className="text-xs font-normal text-black/60">Classic · 10 years of real history</span>
           </button>
 
           <button

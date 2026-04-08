@@ -155,10 +155,17 @@ export function Dashboard() {
               </div>
               <div className="relative z-10 p-8 space-y-5">
                 <div className="text-6xl animate-bounce">🏆</div>
-                <div className="text-xs uppercase tracking-widest text-yellow-400 font-semibold">10 Years Complete</div>
+                <div className="text-xs uppercase tracking-widest text-yellow-400 font-semibold">
+                  {game.gameEra === "present" ? "2026 Complete" : game.gameEra === "future" ? "2035 Complete" : "10 Years Complete"}
+                </div>
                 <h2 className="text-3xl font-display font-bold">You made it.</h2>
                 <p className="text-muted-foreground text-sm">
-                  You started in March 2015 and survived every crash, rally, pandemic, war, and revolution — all the way to March 2025.
+                  {game.gameEra === "present"
+                    ? "You started in March 2025 and navigated the AI bubble, oil shocks, and stagflation — all the way through 2026."
+                    : game.gameEra === "future"
+                    ? "You started in March 2025 and survived a decade of turbulence, recovery, and transformation — all the way to March 2035."
+                    : "You started in March 2015 and survived every crash, rally, pandemic, war, and revolution — all the way to March 2025."
+                  }
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -324,12 +331,16 @@ export function Dashboard() {
                 </div>
               </div>
 
-              {/* 10-Year Progress Bar */}
+              {/* Journey Progress Bar */}
               <div className="relative z-10 mt-6 pt-5 border-t border-white/5">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="font-semibold text-foreground">10-Year Journey</span>
-                    <span className="text-muted-foreground hidden sm:inline">· Mar 2015 → Mar 2025</span>
+                    <span className="font-semibold text-foreground">
+                      {game.gameEra === "present" ? "2025–2026 Journey" : game.gameEra === "future" ? "2025–2035 Journey" : "2015–2025 Journey"}
+                    </span>
+                    <span className="text-muted-foreground hidden sm:inline">
+                      {game.gameEra === "present" ? "· Mar 2025 → Dec 2026" : game.gameEra === "future" ? "· Mar 2025 → Mar 2035" : "· Mar 2015 → Mar 2025"}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm shrink-0 text-muted-foreground">
                     {game.gameWon ? (
@@ -348,7 +359,13 @@ export function Dashboard() {
                   />
                 </div>
                 <div className="flex justify-between text-[10px] text-muted-foreground/50 mt-1 px-0.5">
-                  <span>2015</span><span>2017</span><span>2019</span><span>2021</span><span>2023</span><span>2025</span>
+                  {game.gameEra === "present" ? (
+                    <><span>2025</span><span>Apr</span><span>Jul</span><span>Oct</span><span>2026</span><span>Dec</span></>
+                  ) : game.gameEra === "future" ? (
+                    <><span>2025</span><span>2027</span><span>2029</span><span>2031</span><span>2033</span><span>2035</span></>
+                  ) : (
+                    <><span>2015</span><span>2017</span><span>2019</span><span>2021</span><span>2023</span><span>2025</span></>
+                  )}
                 </div>
               </div>
 

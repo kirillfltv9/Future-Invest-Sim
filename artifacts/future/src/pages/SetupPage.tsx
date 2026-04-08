@@ -116,7 +116,7 @@ export function SetupPage() {
             </>
           ) : (
             <>
-              <p className="text-lg text-muted-foreground">Invest through 10 years of real market history — 2015 to 2025.</p>
+              <p className="text-lg text-muted-foreground">Invest through 10 years of real market history.</p>
               <p className="text-sm text-muted-foreground/60 mt-1">Brexit. COVID. Ukraine. ChatGPT. Your portfolio will feel all of it.</p>
             </>
           )}
