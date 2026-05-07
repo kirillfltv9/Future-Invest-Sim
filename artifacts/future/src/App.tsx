@@ -8,6 +8,7 @@ import { Dashboard } from "@/pages/Dashboard";
 import { FuturePage } from "@/pages/FuturePage";
 import { PresentPage } from "@/pages/PresentPage";
 import { SetupPage } from "@/pages/SetupPage";
+import { MultiplayerRoom } from "@/pages/MultiplayerRoom";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/future" component={FuturePage} />
       <Route path="/present" component={PresentPage} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/multiplayer" component={MultiplayerRoom} />
       <Route component={NotFound} />
     </Switch>
   );

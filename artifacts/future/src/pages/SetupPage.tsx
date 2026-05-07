@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { useLocation, useSearch } from "wouter";
-import { motion } from "framer-motion";
-import { setSessionId } from "@/lib/session";
-import { ArrowRight, Wallet, User, TrendingUp, Loader2, Bitcoin, BarChart2, Layers, ArrowLeft, Sparkles, BookOpen } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { setSessionId, clearSessionId } from "@/lib/session";
+import { setMultiplayerIntent } from "@/lib/multiplayerSocket";
+import {
+  ArrowRight, Wallet, User, TrendingUp, Loader2, Bitcoin,
+  BarChart2, Layers, ArrowLeft, Sparkles, BookOpen,
+  Users, UserCircle, Crown, KeyRound, AlertTriangle,
+} from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 
 type MarketMode = "stocks" | "crypto" | "mixed";
 type GameEra = "classic" | "future" | "present";
+type PlayMode = "solo" | "multiplayer";
 
 const QUICK_AMOUNTS = [1000, 5000, 10000, 25000, 100000];
 
@@ -32,6 +38,10 @@ export function SetupPage() {
   const [name, setName] = useState("");
   const [cashInput, setCashInput] = useState("10000");
   const [mode, setMode] = useState<MarketMode>("stocks");
+  const [playMode, setPlayMode] = useState<PlayMode>("solo");
+  const [joinAction, setJoinAction] = useState<"choose" | "join">("choose");
+  const [joinCode, setJoinCode] = useState("");
+  const [showJoinWarning, setShowJoinWarning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,9 +51,7 @@ export function SetupPage() {
     return n;
   })();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || isLoading || !parsedCash) return;
+  const startSolo = async () => {
     setError(null);
     setIsLoading(true);
     try {
@@ -64,7 +72,49 @@ export function SetupPage() {
     }
   };
 
+  const startHost = () => {
+    if (!name.trim() || !parsedCash) return;
+    setMultiplayerIntent({
+      mode: "host",
+      playerName: name.trim(),
+      marketMode: mode,
+      startingCash: parsedCash,
+    });
+    setLocation("/multiplayer");
+  };
+
+  const confirmJoin = () => {
+    if (!name.trim() || joinCode.trim().length < 4) return;
+    // Wipe solo session per spec
+    clearSessionId();
+    setMultiplayerIntent({
+      mode: "join",
+      playerName: name.trim(),
+      joinCode: joinCode.trim().toUpperCase(),
+    });
+    setLocation("/multiplayer");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || isLoading || !parsedCash) return;
+    if (playMode === "solo") {
+      await startSolo();
+    } else if (joinAction === "choose") {
+      // In multiplayer mode the main submit hosts a room
+      startHost();
+    } else {
+      setShowJoinWarning(true);
+    }
+  };
+
   const backTo = era === "future" ? "/future" : era === "present" ? "/present" : "/";
+
+  const submitDisabled =
+    !name.trim() ||
+    isLoading ||
+    !parsedCash ||
+    (playMode === "multiplayer" && joinAction === "join" && joinCode.trim().length < 4);
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background">
@@ -76,6 +126,43 @@ export function SetupPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background to-background" />
       </div>
+
+      {/* Join warning modal */}
+      <AnimatePresence>
+        {showJoinWarning && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="max-w-md w-full bg-[#0d1117] border border-yellow-400/30 rounded-3xl p-8 text-center space-y-5"
+            >
+              <div className="w-16 h-16 mx-auto rounded-full bg-yellow-400/10 flex items-center justify-center">
+                <AlertTriangle className="w-8 h-8 text-yellow-400" />
+              </div>
+              <h3 className="text-2xl font-display font-bold">Heads up!</h3>
+              <p className="text-sm text-muted-foreground">
+                Joining multiplayer will not save your current solo progress.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowJoinWarning(false)}
+                  className="flex-1 py-3 rounded-xl border border-white/10 text-sm font-semibold text-muted-foreground hover:text-foreground hover:border-white/20"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmJoin}
+                  className="flex-1 py-3 rounded-xl bg-yellow-400 text-black font-semibold hover:bg-yellow-300"
+                >
+                  Join anyway
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -143,81 +230,186 @@ export function SetupPage() {
             </div>
           </div>
 
-          {/* Trader Name */}
+          {/* Trader Name + Solo/Multiplayer toggle */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <User className="w-4 h-4" /> Trader Alias
             </label>
-            <input
-              type="text" value={name} onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. WallStreetWhale"
-              className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-3.5 text-base focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-white/20"
-              required maxLength={20}
-            />
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text" value={name} onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. WallStreetWhale"
+                className="flex-1 bg-black/40 border border-white/10 rounded-xl px-5 py-3.5 text-base focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-white/20"
+                required maxLength={20}
+              />
+              <div className="flex bg-black/30 border border-white/10 rounded-xl p-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setPlayMode("solo")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all",
+                    playMode === "solo"
+                      ? "bg-white text-black"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                  title="Play alone"
+                >
+                  <UserCircle className="w-4 h-4" />
+                  Solo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlayMode("multiplayer")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all",
+                    playMode === "multiplayer"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                  title="Play with friends"
+                >
+                  <Users className="w-4 h-4" />
+                  Multiplayer
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Starting Capital */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Wallet className="w-4 h-4" /> Starting Capital
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-lg">$</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={cashInput}
-                onChange={(e) => setCashInput(e.target.value.replace(/[^0-9.]/g, ""))}
-                placeholder="Enter any amount"
-                className={cn(
-                  "w-full bg-black/40 border rounded-xl pl-8 pr-4 py-3.5 text-base font-financial focus:outline-none focus:ring-2 transition-all placeholder:text-white/20",
-                  parsedCash ? "border-primary/50 focus:border-primary focus:ring-primary/20" : cashInput.length > 0 ? "border-red-500/40 focus:border-red-500 focus:ring-red-500/20" : "border-white/10"
+          {/* Multiplayer-specific options */}
+          <AnimatePresence initial={false}>
+            {playMode === "multiplayer" && (
+              <motion.div
+                key="mp-config"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-4 overflow-hidden"
+              >
+                <div className="grid grid-cols-2 gap-2 bg-black/30 border border-white/10 rounded-xl p-1">
+                  <button
+                    type="button"
+                    onClick={() => setJoinAction("choose")}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all",
+                      joinAction === "choose"
+                        ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Crown className="w-4 h-4" />
+                    Host Game
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setJoinAction("join")}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all",
+                      joinAction === "join"
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <KeyRound className="w-4 h-4" />
+                    Join Game
+                  </button>
+                </div>
+
+                {joinAction === "join" && (
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-2 block">
+                      Room code
+                    </label>
+                    <input
+                      type="text"
+                      value={joinCode}
+                      maxLength={6}
+                      onChange={(e) =>
+                        setJoinCode(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase())
+                      }
+                      placeholder="ABC123"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-3.5 text-2xl font-mono tracking-[0.3em] text-center focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
                 )}
-              />
-              {parsedCash && (
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-emerald-400 font-medium">
-                  {formatCurrency(parsedCash)}
-                </span>
-              )}
-            </div>
-            {!parsedCash && cashInput.length > 0 && (
-              <p className="text-xs text-red-400">Enter an amount between $100 and $10,000,000</p>
+              </motion.div>
             )}
-            <div className="flex gap-2 flex-wrap">
-              {QUICK_AMOUNTS.map((amount) => (
-                <button
-                  key={amount}
-                  type="button"
-                  onClick={() => setCashInput(String(amount))}
+          </AnimatePresence>
+
+          {/* Starting Capital — solo & host show it; joiners use host's value */}
+          {!(playMode === "multiplayer" && joinAction === "join") && (
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Wallet className="w-4 h-4" /> Starting Capital
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-lg">$</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={cashInput}
+                  onChange={(e) => setCashInput(e.target.value.replace(/[^0-9.]/g, ""))}
+                  placeholder="Enter any amount"
                   className={cn(
-                    "px-3 py-1.5 rounded-lg border text-xs font-financial transition-all",
-                    parsedCash === amount
-                      ? "bg-primary/20 border-primary text-primary"
-                      : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                    "w-full bg-black/40 border rounded-xl pl-8 pr-4 py-3.5 text-base font-financial focus:outline-none focus:ring-2 transition-all placeholder:text-white/20",
+                    parsedCash ? "border-primary/50 focus:border-primary focus:ring-primary/20" : cashInput.length > 0 ? "border-red-500/40 focus:border-red-500 focus:ring-red-500/20" : "border-white/10"
                   )}
-                >
-                  {formatCurrency(amount).replace(".00", "")}
-                </button>
-              ))}
+                />
+                {parsedCash && (
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-emerald-400 font-medium">
+                    {formatCurrency(parsedCash)}
+                  </span>
+                )}
+              </div>
+              {!parsedCash && cashInput.length > 0 && (
+                <p className="text-xs text-red-400">Enter an amount between $100 and $10,000,000</p>
+              )}
+              <div className="flex gap-2 flex-wrap">
+                {QUICK_AMOUNTS.map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    onClick={() => setCashInput(String(amount))}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg border text-xs font-financial transition-all",
+                      parsedCash === amount
+                        ? "bg-primary/20 border-primary text-primary"
+                        : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10"
+                    )}
+                  >
+                    {formatCurrency(amount).replace(".00", "")}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <button
             type="submit"
-            disabled={!name.trim() || isLoading || !parsedCash}
+            disabled={submitDisabled}
             className={cn(
               "w-full py-4 rounded-xl font-bold text-lg transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2",
-              era === "future"
+              playMode === "multiplayer"
+                ? joinAction === "join"
+                  ? "bg-emerald-500 hover:bg-emerald-400 text-black hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]"
+                  : "bg-yellow-500 hover:bg-yellow-400 text-black hover:shadow-[0_0_30px_rgba(234,179,8,0.4)]"
+                : era === "future"
                 ? "bg-violet-600 hover:bg-violet-500 text-white hover:shadow-[0_0_30px_rgba(139,92,246,0.4)]"
                 : era === "present"
                 ? "bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]"
                 : "bg-white text-black hover:bg-white/90 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
             )}
           >
-            {isLoading
-              ? <Loader2 className="w-6 h-6 animate-spin" />
-              : <>{era === "future" ? "Start Future Mode" : era === "present" ? "Start Present Mode" : "Start Journey"} <ArrowRight className="w-5 h-5" /></>
-            }
+            {isLoading ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : playMode === "multiplayer" ? (
+              joinAction === "join" ? (
+                <>Join Room <ArrowRight className="w-5 h-5" /></>
+              ) : (
+                <>Create Room <ArrowRight className="w-5 h-5" /></>
+              )
+            ) : (
+              <>{era === "future" ? "Start Future Mode" : era === "present" ? "Start Present Mode" : "Start Journey"} <ArrowRight className="w-5 h-5" /></>
+            )}
           </button>
 
           {error && <p className="text-sm text-red-400 text-center">{error}</p>}
