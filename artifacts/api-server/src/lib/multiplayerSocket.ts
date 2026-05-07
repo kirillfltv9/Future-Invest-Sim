@@ -13,9 +13,11 @@ import {
   getRoom,
   getRoomBySocket,
   handleSocketDisconnect,
+  reattachSocketToPlayer,
   startGame,
   type MarketMode,
 } from "./multiplayer.js";
+import { createMultiplayerSave, consumeResumeToken } from "./saves.js";
 
 interface ClientMessage {
   type: string;
@@ -207,6 +209,41 @@ function handleTrade(socket: WebSocket, msg: ClientMessage): void {
   broadcastRoom(ref.room.code);
 }
 
+function handleSave(socket: WebSocket): void {
+  const ref = getRoomBySocket(socket);
+  if (!ref) {
+    send(socket, "error", { message: "Not in a room" });
+    return;
+  }
+  const code = createMultiplayerSave(ref.room, ref.playerId);
+  send(socket, "save_created", { code });
+}
+
+function handleResume(socket: WebSocket, msg: ClientMessage): void {
+  const token = typeof msg["resumeToken"] === "string" ? msg["resumeToken"].trim() : "";
+  if (!token) {
+    send(socket, "join_denied", { reason: "Resume token required" });
+    return;
+  }
+  const consumed = consumeResumeToken(token);
+  if (!consumed) {
+    send(socket, "join_denied", { reason: "Resume token expired or already used. Save again to get a new code." });
+    return;
+  }
+  const result = reattachSocketToPlayer({
+    roomCode: consumed.roomCode,
+    playerId: consumed.playerId,
+    socket,
+  });
+  if (!result.ok) {
+    send(socket, "join_denied", { reason: result.reason });
+    return;
+  }
+  send(socket, "resumed", { playerId: consumed.playerId, roomCode: result.room.code });
+  broadcastRoom(result.room.code);
+  logger.info({ code: result.room.code, playerId: consumed.playerId }, "Player resumed multiplayer session");
+}
+
 function handleLeave(socket: WebSocket): void {
   const room = handleSocketDisconnect(socket);
   if (room) broadcastRoom(room.code);
@@ -248,6 +285,12 @@ export function attachMultiplayerSocket(server: HttpServer): WebSocketServer {
             break;
           case "trade":
             handleTrade(socket, msg);
+            break;
+          case "save_session":
+            handleSave(socket);
+            break;
+          case "resume_session":
+            handleResume(socket, msg);
             break;
           case "leave":
             handleLeave(socket);

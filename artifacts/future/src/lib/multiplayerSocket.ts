@@ -87,12 +87,13 @@ export type MultiplayerStatus =
   | "error";
 
 export interface MultiplayerIntent {
-  mode: "host" | "join";
+  mode: "host" | "join" | "resume";
   playerName: string;
   marketMode?: MarketMode;
   startingCash?: number;
   totalRounds?: number;
   joinCode?: string;
+  resumeToken?: string;
 }
 
 const INTENT_KEY = "future_mp_intent";
@@ -132,6 +133,7 @@ interface UseMultiplayerRoomReturn {
   startGame: () => void;
   nextRound: () => void;
   trade: (ticker: string, action: "buy" | "sell", shares: number) => void;
+  saveSession: () => Promise<string>;
   leave: () => void;
   reset: () => void;
 }
@@ -150,6 +152,8 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
   const socketRef = useRef<WebSocket | null>(null);
   const intentRef = useRef<MultiplayerIntent | null>(null);
   const closedManuallyRef = useRef(false);
+  const saveResolversRef = useRef<Array<(code: string) => void>>([]);
+  const saveRejectersRef = useRef<Array<(err: Error) => void>>([]);
 
   const sendMessage = useCallback((type: string, payload: Record<string, unknown> = {}) => {
     const sock = socketRef.current;
@@ -180,6 +184,11 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
           startingCash: intent.startingCash ?? 10000,
           totalRounds: intent.totalRounds ?? 10,
         }));
+      } else if (intent.mode === "resume") {
+        socket.send(JSON.stringify({
+          type: "resume_session",
+          resumeToken: intent.resumeToken ?? "",
+        }));
       } else {
         socket.send(JSON.stringify({
           type: "join_request",
@@ -209,6 +218,19 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
         case "joined": {
           setMyPlayerId((msg["playerId"] as string) ?? null);
           setStatus("in_room");
+          break;
+        }
+        case "resumed": {
+          setMyPlayerId((msg["playerId"] as string) ?? null);
+          setStatus("in_room");
+          break;
+        }
+        case "save_created": {
+          const code = (msg["code"] as string) ?? "";
+          const resolvers = saveResolversRef.current;
+          saveResolversRef.current = [];
+          saveRejectersRef.current = [];
+          resolvers.forEach((r) => r(code));
           break;
         }
         case "join_denied": {
@@ -271,6 +293,26 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
     startGame: () => sendMessage("start_game"),
     nextRound: () => sendMessage("next_round"),
     trade: (ticker, action, shares) => sendMessage("trade", { ticker, action, shares }),
+    saveSession: () =>
+      new Promise<string>((resolve, reject) => {
+        const sock = socketRef.current;
+        if (!sock || sock.readyState !== WebSocket.OPEN) {
+          reject(new Error("Not connected"));
+          return;
+        }
+        saveResolversRef.current.push(resolve);
+        saveRejectersRef.current.push(reject);
+        sock.send(JSON.stringify({ type: "save_session" }));
+        // Safety timeout
+        setTimeout(() => {
+          const idx = saveResolversRef.current.indexOf(resolve);
+          if (idx >= 0) {
+            saveResolversRef.current.splice(idx, 1);
+            saveRejectersRef.current.splice(idx, 1);
+            reject(new Error("Save timed out"));
+          }
+        }, 8000);
+      }),
     leave: () => {
       closedManuallyRef.current = true;
       sendMessage("leave");

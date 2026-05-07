@@ -545,6 +545,130 @@ export function handleSocketDisconnect(socket: WebSocket): MultiplayerRoom | nul
   return room;
 }
 
+// ─── Save/Resume support ─────────────────────────────────────────────────────
+
+export interface RoomSnapshot {
+  code: string;
+  hostId: string;
+  status: RoomStatus;
+  marketMode: MarketMode;
+  startingCash: number;
+  totalRounds: number;
+  currentRound: number;
+  currentDay: number;
+  startDate: string;
+  currentDate: string;
+  prices: StockPrice[];
+  sentiment: MarketSentiment;
+  news: string[];
+  gameSeed: number;
+  rankHistory: RankSnapshot[];
+  players: Array<{
+    id: string;
+    name: string;
+    isHost: boolean;
+    cash: number;
+    holdings: Holding[];
+    startingCash: number;
+    joinedAtRound: number;
+  }>;
+}
+
+export function exportRoomSnapshot(room: MultiplayerRoom): RoomSnapshot {
+  return JSON.parse(
+    JSON.stringify({
+      code: room.code,
+      hostId: room.hostId,
+      status: room.status,
+      marketMode: room.marketMode,
+      startingCash: room.startingCash,
+      totalRounds: room.totalRounds,
+      currentRound: room.currentRound,
+      currentDay: room.currentDay,
+      startDate: room.startDate,
+      currentDate: room.currentDate,
+      prices: room.prices,
+      sentiment: room.sentiment,
+      news: room.news,
+      gameSeed: room.gameSeed,
+      rankHistory: room.rankHistory,
+      players: Array.from(room.players.values()).map((p) => ({
+        id: p.id,
+        name: p.name,
+        isHost: p.isHost,
+        cash: p.cash,
+        holdings: p.holdings,
+        startingCash: p.startingCash,
+        joinedAtRound: p.joinedAtRound,
+      })),
+    }),
+  );
+}
+
+export function importRoomSnapshot(snapshot: RoomSnapshot): MultiplayerRoom {
+  const players = new Map<string, MultiplayerPlayer>();
+  for (const p of snapshot.players) {
+    players.set(p.id, {
+      id: p.id,
+      name: p.name,
+      socket: null,
+      isHost: p.isHost,
+      cash: p.cash,
+      holdings: JSON.parse(JSON.stringify(p.holdings)),
+      startingCash: p.startingCash,
+      joinedAtRound: p.joinedAtRound,
+      connected: false,
+    });
+  }
+  const room: MultiplayerRoom = {
+    code: snapshot.code,
+    hostId: snapshot.hostId,
+    players,
+    pendingJoins: new Map(),
+    status: snapshot.status,
+    marketMode: snapshot.marketMode,
+    startingCash: snapshot.startingCash,
+    totalRounds: snapshot.totalRounds,
+    currentRound: snapshot.currentRound,
+    currentDay: snapshot.currentDay,
+    startDate: snapshot.startDate,
+    currentDate: snapshot.currentDate,
+    prices: JSON.parse(JSON.stringify(snapshot.prices)),
+    sentiment: snapshot.sentiment,
+    news: [...snapshot.news],
+    gameSeed: snapshot.gameSeed,
+    rankHistory: JSON.parse(JSON.stringify(snapshot.rankHistory)),
+    createdAt: Date.now(),
+  };
+  ROOMS.set(room.code, room);
+  return room;
+}
+
+/** Reattach an active websocket to an existing player slot (for resume). */
+export function reattachSocketToPlayer(opts: {
+  roomCode: string;
+  playerId: string;
+  socket: WebSocket;
+}): { ok: true; room: MultiplayerRoom } | { ok: false; reason: string } {
+  const room = getRoom(opts.roomCode);
+  if (!room) return { ok: false, reason: "Room not found" };
+  const player = room.players.get(opts.playerId);
+  if (!player) return { ok: false, reason: "Player no longer in room" };
+
+  // Drop any old socket reference
+  if (player.socket && player.socket !== opts.socket) {
+    try {
+      player.socket.close();
+    } catch {
+      /* ignore */
+    }
+  }
+  player.socket = opts.socket;
+  player.connected = true;
+  SOCKET_TO_ROOM.set(opts.socket, { roomCode: room.code, playerId: opts.playerId });
+  return { ok: true, room };
+}
+
 export function getStartingCashOptions(): number[] {
   return [1000, 5000, 10000, 25000, 100000];
 }

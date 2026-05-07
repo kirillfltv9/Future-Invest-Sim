@@ -1,11 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { getSessionId } from "@/lib/session";
-import { TrendingUp, Monitor, Sparkles, ArrowRight, BookOpen } from "lucide-react";
+import { TrendingUp, Monitor, Sparkles, BookOpen, KeyRound } from "lucide-react";
+import { ResumeModal } from "@/components/ResumeModal";
 
 export function Landing() {
   const [, setLocation] = useLocation();
+  const [showResume, setShowResume] = useState(false);
 
   useEffect(() => {
     if (getSessionId()) setLocation("/dashboard");
@@ -120,10 +122,21 @@ export function Landing() {
           </button>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground/40 mt-4">
-          Already started? <button onClick={() => setLocation("/dashboard")} className="underline underline-offset-2 hover:text-white/60 transition-colors">Continue &rarr;</button>
-        </p>
+        <div className="flex flex-col items-center gap-2 mt-4">
+          <button
+            onClick={() => setShowResume(true)}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            I have a resume code
+          </button>
+          <p className="text-center text-xs text-muted-foreground/40">
+            Already started? <button onClick={() => setLocation("/dashboard")} className="underline underline-offset-2 hover:text-white/60 transition-colors">Continue &rarr;</button>
+          </p>
+        </div>
       </motion.div>
+
+      <ResumeModal isOpen={showResume} onClose={() => setShowResume(false)} />
     </div>
   );
 }

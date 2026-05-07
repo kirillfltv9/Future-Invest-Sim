@@ -16,12 +16,14 @@ import {
   Trophy,
   Wifi,
   Sparkles,
+  Save,
 } from "lucide-react";
 import { useListStocks } from "@workspace/api-client-react";
 import { useMultiplayerRoom, clearMultiplayerIntent } from "@/lib/multiplayerSocket";
 import { Leaderboard } from "@/components/multiplayer/Leaderboard";
 import { MultiplayerMarketPanel } from "@/components/multiplayer/MultiplayerMarketPanel";
 import { HoldingsList } from "@/components/dashboard/HoldingsList";
+import { SaveCodeModal } from "@/components/SaveCodeModal";
 import { formatCurrency, cn } from "@/lib/utils";
 
 export function MultiplayerRoom() {
@@ -30,12 +32,23 @@ export function MultiplayerRoom() {
   const { data: stocks = [] } = useListStocks();
   const [copied, setCopied] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [showSave, setShowSave] = useState(false);
 
   const goHome = () => {
     mp.leave();
     clearMultiplayerIntent();
     setLocation("/");
   };
+
+  const saveModal = (
+    <SaveCodeModal
+      isOpen={showSave}
+      onClose={() => setShowSave(false)}
+      onSave={() => mp.saveSession()}
+      onLeave={goHome}
+      leaveLabel="Save & exit"
+    />
+  );
 
   // Connecting / registering
   if (mp.status === "connecting" || mp.status === "registering" || mp.status === "idle") {
@@ -115,20 +128,24 @@ export function MultiplayerRoom() {
   // Lobby
   if (mp.room.status === "lobby") {
     return (
-      <Lobby
-        room={mp.room}
-        isHost={mp.isHost}
-        onCopyCode={() => {
-          navigator.clipboard.writeText(mp.room!.code).catch(() => {});
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        }}
-        copied={copied}
-        onAccept={mp.acceptJoin}
-        onDeny={mp.denyJoin}
-        onStart={mp.startGame}
-        onLeave={goHome}
-      />
+      <>
+        <Lobby
+          room={mp.room}
+          isHost={mp.isHost}
+          onCopyCode={() => {
+            navigator.clipboard.writeText(mp.room!.code).catch(() => {});
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          }}
+          copied={copied}
+          onAccept={mp.acceptJoin}
+          onDeny={mp.denyJoin}
+          onStart={mp.startGame}
+          onSave={() => setShowSave(true)}
+          onLeave={goHome}
+        />
+        {saveModal}
+      </>
     );
   }
 
@@ -139,18 +156,22 @@ export function MultiplayerRoom() {
 
   // Playing
   return (
-    <PlayingView
-      room={mp.room}
-      you={mp.you}
-      stocks={stocks}
-      isHost={mp.isHost}
-      myPlayerId={mp.myPlayerId}
-      onTrade={mp.trade}
-      onNextRound={mp.nextRound}
-      onLeave={goHome}
-      collapsed={collapsed}
-      setCollapsed={setCollapsed}
-    />
+    <>
+      <PlayingView
+        room={mp.room}
+        you={mp.you}
+        stocks={stocks}
+        isHost={mp.isHost}
+        myPlayerId={mp.myPlayerId}
+        onTrade={mp.trade}
+        onNextRound={mp.nextRound}
+        onSave={() => setShowSave(true)}
+        onLeave={goHome}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+      />
+      {saveModal}
+    </>
   );
 }
 
@@ -166,6 +187,7 @@ function Lobby({
   onAccept,
   onDeny,
   onStart,
+  onSave,
   onLeave,
 }: {
   room: NonNullable<ReturnType<typeof useMultiplayerRoom>["room"]>;
@@ -175,6 +197,7 @@ function Lobby({
   onAccept: (id: string) => void;
   onDeny: (id: string) => void;
   onStart: () => void;
+  onSave: () => void;
   onLeave: () => void;
 }) {
   const canStart = isHost && room.players.length >= 1;
@@ -186,13 +209,23 @@ function Lobby({
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
           Future. <span className="text-muted-foreground font-normal">/ Multiplayer Lobby</span>
         </div>
-        <button
-          onClick={onLeave}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-white/10 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/10"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          Leave
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onSave}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-primary/30 text-primary hover:bg-primary/10"
+            title="Save and get a resume code"
+          >
+            <Save className="w-3.5 h-3.5" />
+            Save
+          </button>
+          <button
+            onClick={onLeave}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-white/10 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/10"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Leave
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto p-6">
@@ -368,6 +401,7 @@ function PlayingView({
   myPlayerId,
   onTrade,
   onNextRound,
+  onSave,
   onLeave,
   collapsed,
   setCollapsed,
@@ -379,6 +413,7 @@ function PlayingView({
   myPlayerId: string | null;
   onTrade: (ticker: string, action: "buy" | "sell", shares: number) => void;
   onNextRound: () => void;
+  onSave: () => void;
   onLeave: () => void;
   collapsed: boolean;
   setCollapsed: (c: boolean) => void;
@@ -470,6 +505,14 @@ function PlayingView({
               Host controls round
             </div>
           )}
+          <button
+            onClick={onSave}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-primary/30 text-primary hover:bg-primary/10"
+            title="Save and get a resume code"
+          >
+            <Save className="w-3.5 h-3.5" />
+            Save
+          </button>
           <button
             onClick={onLeave}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-white/10 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/10"

@@ -10,10 +10,11 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, formatPercent, getProfitLossColor, cn } from "@/lib/utils";
-import { LogOut, Calendar, TrendingUp, TrendingDown, Clock, Newspaper, Loader2, AlertCircle, RotateCcw, Trophy } from "lucide-react";
+import { LogOut, Calendar, TrendingUp, TrendingDown, Clock, Newspaper, Loader2, AlertCircle, RotateCcw, Trophy, Save } from "lucide-react";
 import { PortfolioChart } from "@/components/dashboard/PortfolioChart";
 import { HoldingsList } from "@/components/dashboard/HoldingsList";
 import { MarketPanel } from "@/components/dashboard/MarketPanel";
+import { SaveCodeModal } from "@/components/SaveCodeModal";
 
 type GameData = {
   sessionId: string;
@@ -45,6 +46,7 @@ export function Dashboard() {
   const sessionId = getSessionId();
   const queryClient = useQueryClient();
   const [showWin, setShowWin] = useState(false);
+  const [showSave, setShowSave] = useState(false);
 
   useEffect(() => {
     if (!sessionId) setLocation("/");
@@ -272,6 +274,15 @@ export function Dashboard() {
           </button>
 
           <button
+            onClick={() => setShowSave(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-all"
+            title="Save game and get a resume code"
+          >
+            <Save className="w-3.5 h-3.5" />
+            Save
+          </button>
+
+          <button
             onClick={() => { clearSessionId(); setLocation("/"); }}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-white/10 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/10 transition-all"
             title="Restart Game"
@@ -281,6 +292,23 @@ export function Dashboard() {
           </button>
         </div>
       </header>
+
+      <SaveCodeModal
+        isOpen={showSave}
+        onClose={() => setShowSave(false)}
+        onSave={async () => {
+          const res = await fetch("/api/saves/solo", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId: game.sessionId }),
+          });
+          if (!res.ok) throw new Error("Could not save game");
+          const data = await res.json();
+          return data.code as string;
+        }}
+        onLeave={() => { clearSessionId(); setLocation("/"); }}
+        leaveLabel="Save & exit"
+      />
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
