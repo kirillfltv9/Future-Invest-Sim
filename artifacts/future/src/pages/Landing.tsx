@@ -2,16 +2,33 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { getSessionId } from "@/lib/session";
-import { TrendingUp, Monitor, Sparkles, BookOpen, KeyRound } from "lucide-react";
+import { TrendingUp, Monitor, Sparkles, BookOpen, KeyRound, UserCog } from "lucide-react";
 import { ResumeModal } from "@/components/ResumeModal";
+import { NicknameModal } from "@/components/NicknameModal";
+import { hasBeenPromptedForNickname, loadNickname } from "@/lib/nickname";
 
 export function Landing() {
   const [, setLocation] = useLocation();
   const [showResume, setShowResume] = useState(false);
+  const [showNickname, setShowNickname] = useState(false);
+  const [nickname, setNickname] = useState(loadNickname());
 
   useEffect(() => {
-    if (getSessionId()) setLocation("/dashboard");
+    if (getSessionId()) {
+      setLocation("/dashboard");
+      return;
+    }
+    if (!hasBeenPromptedForNickname()) {
+      // Small delay so the landing page can mount first
+      const t = setTimeout(() => setShowNickname(true), 350);
+      return () => clearTimeout(t);
+    }
   }, [setLocation]);
+
+  const closeNickname = () => {
+    setShowNickname(false);
+    setNickname(loadNickname());
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background">
@@ -39,6 +56,19 @@ export function Landing() {
             Future.
           </h1>
           <p className="text-muted-foreground text-sm">An investment simulator · Rated PG</p>
+          {nickname && (
+            <motion.button
+              type="button"
+              onClick={() => setShowNickname(true)}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-3 inline-flex items-center gap-1.5 text-xs text-amber-300/90 hover:text-amber-300 transition-colors px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20"
+              title="Change your nickname"
+            >
+              <UserCog className="w-3 h-3" />
+              Hello, <span className="font-semibold">{nickname}</span>
+            </motion.button>
+          )}
         </div>
 
         {/* Device notice */}
@@ -137,6 +167,7 @@ export function Landing() {
       </motion.div>
 
       <ResumeModal isOpen={showResume} onClose={() => setShowResume(false)} />
+      <NicknameModal isOpen={showNickname} onClose={closeNickname} />
     </div>
   );
 }

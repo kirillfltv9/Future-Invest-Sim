@@ -3,6 +3,7 @@ import { useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { setSessionId, clearSessionId } from "@/lib/session";
 import { setMultiplayerIntent } from "@/lib/multiplayerSocket";
+import { loadNickname } from "@/lib/nickname";
 import {
   ArrowRight, Wallet, User, TrendingUp, Loader2, Bitcoin,
   BarChart2, Layers, ArrowLeft, Sparkles, BookOpen,
@@ -35,7 +36,7 @@ export function SetupPage() {
   const rawEra = params.get("era");
   const era: GameEra = rawEra === "future" ? "future" : rawEra === "present" ? "present" : "classic";
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => loadNickname());
   const [cashInput, setCashInput] = useState("10000");
   const [mode, setMode] = useState<MarketMode>("stocks");
   const [playMode, setPlayMode] = useState<PlayMode>("solo");
