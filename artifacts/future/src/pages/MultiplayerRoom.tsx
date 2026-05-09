@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Crown,
   Users,
   Copy,
   Check,
@@ -24,6 +23,7 @@ import { Leaderboard } from "@/components/multiplayer/Leaderboard";
 import { MultiplayerMarketPanel } from "@/components/multiplayer/MultiplayerMarketPanel";
 import { HoldingsList } from "@/components/dashboard/HoldingsList";
 import { SaveCodeModal } from "@/components/SaveCodeModal";
+import { FinalStandings } from "@/components/FinalStandings";
 import { formatCurrency, cn } from "@/lib/utils";
 
 export function MultiplayerRoom() {
@@ -151,7 +151,19 @@ export function MultiplayerRoom() {
 
   // Finished
   if (mp.room.status === "finished") {
-    return <Results room={mp.room} myPlayerId={mp.myPlayerId} onLeave={goHome} />;
+    return (
+      <FinalStandings
+        leaderboard={mp.room.leaderboard}
+        roomCode={mp.room.code}
+        myPlayerId={mp.myPlayerId}
+        onPlayAgain={() => {
+          mp.leave();
+          clearMultiplayerIntent();
+          setLocation("/setup");
+        }}
+        onLeave={goHome}
+      />
+    );
   }
 
   // Playing
@@ -175,9 +187,7 @@ export function MultiplayerRoom() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // LOBBY
-// ─────────────────────────────────────────────────────────────────────────────
 
 function Lobby({
   room,
@@ -389,9 +399,7 @@ function Lobby({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // PLAYING VIEW
-// ─────────────────────────────────────────────────────────────────────────────
 
 function PlayingView({
   room,
@@ -662,135 +670,3 @@ function PlayingView({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FINAL RESULTS
-// ─────────────────────────────────────────────────────────────────────────────
-
-function Results({
-  room,
-  myPlayerId,
-  onLeave,
-}: {
-  room: NonNullable<ReturnType<typeof useMultiplayerRoom>["room"]>;
-  myPlayerId: string | null;
-  onLeave: () => void;
-}) {
-  const winner = room.leaderboard[0];
-  const me = room.leaderboard.find((e) => e.playerId === myPlayerId);
-  const iWon = winner?.playerId === myPlayerId;
-
-  return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-yellow-400/10 blur-[120px] rounded-full" />
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring", damping: 22, stiffness: 200 }}
-        className="relative max-w-2xl w-full bg-[#0d1117]/95 border border-white/10 rounded-3xl p-8 md:p-10 space-y-8"
-      >
-        <div className="text-center space-y-3">
-          <motion.div
-            initial={{ scale: 0, rotate: -45 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", damping: 12, stiffness: 200, delay: 0.2 }}
-            className="text-7xl"
-          >
-            🏆
-          </motion.div>
-          <div className="text-xs uppercase tracking-widest text-yellow-400 font-semibold">
-            Game Over · Room {room.code}
-          </div>
-          <h2 className="text-3xl md:text-4xl font-display font-bold">
-            {iWon ? "You won!" : winner ? `${winner.name} takes the crown` : "Game complete"}
-          </h2>
-          {me && !iWon && (
-            <p className="text-muted-foreground">
-              You finished #{me.rank} of {room.leaderboard.length} with{" "}
-              <span className={me.returnPercent >= 0 ? "text-emerald-400" : "text-red-400"}>
-                {me.returnPercent >= 0 ? "+" : ""}
-                {me.returnPercent.toFixed(1)}%
-              </span>{" "}
-              return.
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          {room.leaderboard.map((entry, idx) => {
-            const isMe = entry.playerId === myPlayerId;
-            const isWinner = idx === 0;
-            const isPositive = entry.returnPercent >= 0;
-            return (
-              <motion.div
-                key={entry.playerId}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 + idx * 0.08 }}
-                className={cn(
-                  "flex items-center gap-4 p-4 rounded-2xl border",
-                  isWinner
-                    ? "bg-gradient-to-r from-yellow-500/10 to-yellow-400/5 border-yellow-500/40"
-                    : isMe
-                    ? "bg-primary/10 border-primary/40"
-                    : "bg-white/5 border-white/5",
-                )}
-              >
-                <div
-                  className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center font-display font-bold",
-                    isWinner
-                      ? "bg-yellow-500/30 text-yellow-300"
-                      : entry.rank === 2
-                      ? "bg-zinc-300/15 text-zinc-200"
-                      : entry.rank === 3
-                      ? "bg-amber-700/20 text-amber-500"
-                      : "bg-white/5 text-muted-foreground",
-                  )}
-                >
-                  {isWinner ? <Crown className="w-5 h-5" /> : entry.rank}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold truncate">{entry.name}</span>
-                    {isMe && (
-                      <span className="text-[10px] uppercase font-bold tracking-widest text-primary">
-                        YOU
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Started {formatCurrency(entry.startingCash)}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-financial font-bold">
-                    {formatCurrency(entry.totalValue)}
-                  </div>
-                  <div
-                    className={cn(
-                      "text-xs font-mono font-semibold",
-                      isPositive ? "text-emerald-400" : "text-red-400",
-                    )}
-                  >
-                    {isPositive ? "+" : ""}
-                    {entry.returnPercent.toFixed(2)}%
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        <button
-          onClick={onLeave}
-          className="w-full py-3 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition-all"
-        >
-          Back to start
-        </button>
-      </motion.div>
-    </div>
-  );
-}
