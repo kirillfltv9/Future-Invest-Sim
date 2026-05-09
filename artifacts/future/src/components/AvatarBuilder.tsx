@@ -1,17 +1,18 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User, Scissors, Smile, Crown, Shirt, Footprints, ArrowRight, Check, Shuffle,
+  User, Scissors, Smile, Crown, Shirt, Square, Footprints, ArrowRight, Check, Shuffle,
 } from "lucide-react";
 import {
   type AvatarConfig,
-  SKIN_OPTIONS, HAIR_OPTIONS, EXPRESSION_OPTIONS, HAT_OPTIONS, TOP_OPTIONS, BOTTOMS_OPTIONS,
+  SKIN_OPTIONS, HAIR_OPTIONS, EXPRESSION_OPTIONS, HAT_OPTIONS, TOP_OPTIONS, BOTTOMS_OPTIONS, SHOES_OPTIONS,
   TOP_LABEL_MAX_LEN,
+  saveStoredAvatar,
 } from "@/lib/avatar";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { cn } from "@/lib/utils";
 
-type CategoryId = "skin" | "hair" | "expression" | "hat" | "top" | "bottoms";
+type CategoryId = "skin" | "hair" | "expression" | "hat" | "top" | "bottoms" | "shoes";
 
 const CATEGORIES: { id: CategoryId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "skin",       label: "Skin",       icon: User },
@@ -19,7 +20,8 @@ const CATEGORIES: { id: CategoryId; label: string; icon: React.ComponentType<{ c
   { id: "expression", label: "Expression", icon: Smile },
   { id: "hat",        label: "Hat",        icon: Crown },
   { id: "top",        label: "Top",        icon: Shirt },
-  { id: "bottoms",    label: "Bottoms",    icon: Footprints },
+  { id: "bottoms",    label: "Bottoms",    icon: Square },
+  { id: "shoes",      label: "Shoes",      icon: Footprints },
 ];
 
 interface Props {
@@ -29,12 +31,25 @@ interface Props {
   confirmLabel?: string;
 }
 
-export function AvatarBuilder({ initialAvatar, playerName, onConfirm, confirmLabel = "Start Investing" }: Props) {
+export function AvatarBuilder({ initialAvatar, playerName, onConfirm, confirmLabel = "Save & Start" }: Props) {
   const [avatar, setAvatar] = useState<AvatarConfig>(initialAvatar);
   const [active, setActive] = useState<CategoryId>("skin");
+  const [savedFlash, setSavedFlash] = useState(false);
+
+  // Auto-save the look on every change so it always persists.
+  useEffect(() => {
+    saveStoredAvatar(avatar);
+  }, [avatar]);
+
+  // Show a brief "Saved!" flash whenever the look changes.
+  useEffect(() => {
+    setSavedFlash(true);
+    const t = setTimeout(() => setSavedFlash(false), 900);
+    return () => clearTimeout(t);
+  }, [avatar]);
 
   const items = useMemo(() => getItemsFor(active), [active]);
-  const currentValue = avatar[active === "bottoms" ? "bottoms" : active];
+  const currentValue = avatar[active];
 
   const update = <K extends keyof AvatarConfig>(key: K, value: AvatarConfig[K]) => {
     setAvatar((prev) => ({ ...prev, [key]: value }));
@@ -50,6 +65,7 @@ export function AvatarBuilder({ initialAvatar, playerName, onConfirm, confirmLab
       top: pickOne(TOP_OPTIONS).id,
       topLabel: avatar.topLabel,
       bottoms: pickOne(BOTTOMS_OPTIONS).id,
+      shoes: pickOne(SHOES_OPTIONS).id,
     });
   };
 
@@ -68,14 +84,29 @@ export function AvatarBuilder({ initialAvatar, playerName, onConfirm, confirmLab
           <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
           Future. <span className="text-muted-foreground font-normal">/ Customize</span>
         </div>
-        <button
-          type="button"
-          onClick={randomize}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-white/15 text-muted-foreground hover:text-white hover:border-white/30 transition-all"
-        >
-          <Shuffle className="w-3.5 h-3.5" />
-          Surprise me
-        </button>
+        <div className="flex items-center gap-2">
+          <AnimatePresence>
+            {savedFlash && (
+              <motion.div
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 12 }}
+                className="flex items-center gap-1.5 text-xs font-semibold text-emerald-300"
+              >
+                <Check className="w-3.5 h-3.5" />
+                Look saved
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <button
+            type="button"
+            onClick={randomize}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-white/15 text-muted-foreground hover:text-white hover:border-white/30 transition-all"
+          >
+            <Shuffle className="w-3.5 h-3.5" />
+            Surprise me
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center px-6 pb-8">
@@ -245,6 +276,7 @@ function getItemsFor(category: CategoryId): { id: string; label: string }[] {
     case "hat":        return HAT_OPTIONS;
     case "top":        return TOP_OPTIONS;
     case "bottoms":    return BOTTOMS_OPTIONS;
+    case "shoes":      return SHOES_OPTIONS;
   }
 }
 
@@ -261,6 +293,7 @@ function updateCategory(
       case "hat":        return { ...prev, hat:        itemId as AvatarConfig["hat"] };
       case "top":        return { ...prev, top:        itemId as AvatarConfig["top"] };
       case "bottoms":    return { ...prev, bottoms:    itemId as AvatarConfig["bottoms"] };
+      case "shoes":      return { ...prev, shoes:      itemId as AvatarConfig["shoes"] };
     }
   });
 }
@@ -284,11 +317,12 @@ function ItemThumbnail({
       case "hat":        next.hat        = itemId as AvatarConfig["hat"]; break;
       case "top":        next.top        = itemId as AvatarConfig["top"]; break;
       case "bottoms":    next.bottoms    = itemId as AvatarConfig["bottoms"]; break;
+      case "shoes":      next.shoes      = itemId as AvatarConfig["shoes"]; break;
     }
     return next;
   }, [category, itemId, avatar]);
 
-  // Compact thumbnails for face-related items, full body for clothing.
+  // Compact thumbnails for face-related items, full body for clothing/footwear.
   const compact = category === "skin" || category === "hair" || category === "expression" || category === "hat";
   return <PlayerAvatar avatar={previewAvatar} size={compact ? 56 : 72} compact={compact} />;
 }

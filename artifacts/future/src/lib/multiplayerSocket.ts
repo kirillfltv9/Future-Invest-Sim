@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { AvatarConfig } from "./avatar";
+import { loadStoredAvatar, type AvatarConfig } from "./avatar";
 
 export type RoomStatus = "lobby" | "playing" | "finished";
 export type MarketMode = "stocks" | "crypto" | "mixed";
@@ -175,6 +175,11 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
     intentRef.current = intent;
     setStatus("connecting");
 
+    // Defensive fallback: if the intent has no avatar (older session, refresh,
+    // or skipped customization), hydrate from the most recently saved look so
+    // the player never enters a game with the default skin unintentionally.
+    const avatarPayload = intent.avatar ?? loadStoredAvatar();
+
     const socket = new WebSocket(buildSocketUrl());
     socketRef.current = socket;
 
@@ -187,7 +192,7 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
           marketMode: intent.marketMode ?? "stocks",
           startingCash: intent.startingCash ?? 10000,
           totalRounds: intent.totalRounds ?? 10,
-          avatar: intent.avatar ?? null,
+          avatar: avatarPayload,
         }));
       } else if (intent.mode === "resume") {
         socket.send(JSON.stringify({
@@ -199,7 +204,7 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
           type: "join_request",
           playerName: intent.playerName,
           roomCode: (intent.joinCode ?? "").toUpperCase(),
-          avatar: intent.avatar ?? null,
+          avatar: avatarPayload,
         }));
       }
     });

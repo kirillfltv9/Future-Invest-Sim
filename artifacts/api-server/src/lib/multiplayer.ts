@@ -22,6 +22,7 @@ export interface AvatarConfig {
   top: string;
   topLabel: string;
   bottoms: string;
+  shoes: string;
 }
 
 export interface MultiplayerPlayer {

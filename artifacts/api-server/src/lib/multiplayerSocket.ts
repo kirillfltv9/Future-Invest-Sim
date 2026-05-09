@@ -70,6 +70,7 @@ const EXPRESSION_IDS = new Set(["smile", "smirk", "shades", "monocle", "wink"]);
 const HAT_IDS        = new Set(["none", "cap", "beanie", "tophat", "crown"]);
 const TOP_IDS        = new Set(["tee", "hoodie", "suit", "jersey", "racing"]);
 const BOTTOMS_IDS    = new Set(["jeans", "shorts", "slacks", "sweats"]);
+const SHOES_IDS      = new Set(["barefoot", "sneakers", "boots", "heels", "sandals"]);
 
 function pickEnum(value: unknown, allowed: Set<string>, fallback: string): string {
   return typeof value === "string" && allowed.has(value) ? value : fallback;
@@ -92,6 +93,7 @@ function sanitizeAvatar(input: unknown): AvatarConfig | null {
     top:        pickEnum(r["top"],        TOP_IDS,        "tee"),
     topLabel,
     bottoms:    pickEnum(r["bottoms"],    BOTTOMS_IDS,    "jeans"),
+    shoes:      pickEnum(r["shoes"],      SHOES_IDS,      "sneakers"),
   };
 }
 

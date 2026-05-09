@@ -6,6 +6,7 @@ export type ExpressionId = "smile" | "smirk" | "shades" | "monocle" | "wink";
 export type HatId        = "none"  | "cap"  | "beanie" | "tophat" | "crown";
 export type TopId        = "tee"   | "hoodie" | "suit"  | "jersey" | "racing";
 export type BottomsId    = "jeans" | "shorts" | "slacks" | "sweats";
+export type ShoesId      = "barefoot" | "sneakers" | "boots" | "heels" | "sandals";
 
 export interface AvatarConfig {
   skin: SkinId;
@@ -15,6 +16,7 @@ export interface AvatarConfig {
   top: TopId;
   topLabel: string; // short jersey label, 0-8 chars
   bottoms: BottomsId;
+  shoes: ShoesId;
 }
 
 export const SKIN_OPTIONS: { id: SkinId; color: string; label: string }[] = [
@@ -65,6 +67,14 @@ export const BOTTOMS_OPTIONS: { id: BottomsId; color: string; label: string }[] 
   { id: "sweats", color: "#525b6b", label: "Sweats" },
 ];
 
+export const SHOES_OPTIONS: { id: ShoesId; color: string; label: string }[] = [
+  { id: "barefoot", color: "#a16d4a", label: "None" },
+  { id: "sneakers", color: "#f5f5f5", label: "Sneakers" },
+  { id: "boots",    color: "#3d2817", label: "Boots" },
+  { id: "heels",    color: "#dc2626", label: "Heels" },
+  { id: "sandals",  color: "#8b5a2b", label: "Sandals" },
+];
+
 export const TOP_LABEL_MAX_LEN = 8;
 
 export const DEFAULT_AVATAR: AvatarConfig = {
@@ -75,6 +85,7 @@ export const DEFAULT_AVATAR: AvatarConfig = {
   top: "tee",
   topLabel: "",
   bottoms: "jeans",
+  shoes: "sneakers",
 };
 
 const ID_SETS = {
@@ -84,6 +95,7 @@ const ID_SETS = {
   hat: new Set(HAT_OPTIONS.map((o) => o.id)),
   top: new Set(TOP_OPTIONS.map((o) => o.id)),
   bottoms: new Set(BOTTOMS_OPTIONS.map((o) => o.id)),
+  shoes: new Set(SHOES_OPTIONS.map((o) => o.id)),
 };
 
 function pick<T extends string>(value: unknown, allowed: Set<string>, fallback: T): T {
@@ -106,6 +118,7 @@ export function sanitizeAvatar(raw: unknown): AvatarConfig {
     top:        pick<TopId>(r["top"],         ID_SETS.top,        DEFAULT_AVATAR.top),
     topLabel,
     bottoms:    pick<BottomsId>(r["bottoms"], ID_SETS.bottoms,    DEFAULT_AVATAR.bottoms),
+    shoes:      pick<ShoesId>(r["shoes"],     ID_SETS.shoes,      DEFAULT_AVATAR.shoes),
   };
 }
 

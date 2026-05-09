@@ -27,7 +27,7 @@ export function AvatarSetupPage() {
       initialAvatar={initial}
       playerName={intent.playerName}
       onConfirm={onConfirm}
-      confirmLabel={intent.mode === "host" ? "Create Room" : "Join Game"}
+      confirmLabel={intent.mode === "host" ? "Save & Create Room" : "Save & Join Game"}
     />
   );
 }

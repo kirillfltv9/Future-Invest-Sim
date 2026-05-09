@@ -6,6 +6,7 @@ import {
   HAT_OPTIONS,
   TOP_OPTIONS,
   BOTTOMS_OPTIONS,
+  SHOES_OPTIONS,
 } from "@/lib/avatar";
 import { cn } from "@/lib/utils";
 
@@ -43,15 +44,17 @@ export function PlayerAvatar({ avatar, size = 200, compact = false, className }:
   const hat  = lookup(HAT_OPTIONS,  avatar.hat);
   const top  = lookup(TOP_OPTIONS,  avatar.top);
   const bot  = lookup(BOTTOMS_OPTIONS, avatar.bottoms);
+  const shoe = lookup(SHOES_OPTIONS, avatar.shoes);
 
   const skinDark  = shade(skin.color, -0.15);
   const skinLight = shade(skin.color, 0.08);
   const topDark   = shade(top.color, -0.20);
   const topLight  = shade(top.color, 0.12);
   const botDark   = shade(bot.color, -0.20);
+  const shoeDark  = shade(shoe.color, -0.25);
 
-  const viewBox = compact ? "0 0 240 200" : "0 0 240 280";
-  const aspect = compact ? 200 / 240 : 280 / 240;
+  const viewBox = compact ? "0 0 240 200" : "0 0 240 300";
+  const aspect = compact ? 200 / 240 : 300 / 240;
 
   return (
     <svg
@@ -77,6 +80,18 @@ export function PlayerAvatar({ avatar, size = 200, compact = false, className }:
           <stop offset="100%" stopColor={botDark} />
         </linearGradient>
       </defs>
+
+      {/* ── Shoes (drawn first so bottoms overlap their tops) ── */}
+      {!compact && (
+        <Shoes
+          id={avatar.shoes}
+          color={shoe.color}
+          dark={shoeDark}
+          skinColor={skin.color}
+          skinDark={skinDark}
+          bottomsId={avatar.bottoms}
+        />
+      )}
 
       {/* ── Bottoms ── */}
       {!compact && <Bottoms id={avatar.bottoms} fill={`url(#bot-${uid})`} stroke={botDark} />}
@@ -323,6 +338,105 @@ function Hair({ id, color }: { id: AvatarConfig["hair"]; color: string }) {
           <ellipse cx={170} cy={70} rx={12} ry={14} fill={color} />
           <path d="M178 76 Q200 110 188 150 L172 150 Q186 110 170 80 Z" fill={color} />
           <path d="M180 80 Q198 110 188 148" fill="none" stroke={dark} strokeWidth={1} opacity={0.6} />
+        </g>
+      );
+  }
+}
+
+function Shoes({
+  id, color, dark, skinColor, skinDark, bottomsId,
+}: {
+  id: AvatarConfig["shoes"];
+  color: string;
+  dark: string;
+  skinColor: string;
+  skinDark: string;
+  bottomsId: AvatarConfig["bottoms"];
+}) {
+  // Shoes anchor at y=282-298 below pants. For shorts, fill the gap between
+  // hem (y=258) and the shoe with skin-colored "calf".
+  const calves = bottomsId === "shorts" ? (
+    <g>
+      <rect x={78}  y={256} width={24} height={28} fill={skinColor} />
+      <rect x={138} y={256} width={24} height={28} fill={skinColor} />
+      <ellipse cx={90}  cy={256} rx={12} ry={3} fill={skinDark} opacity={0.4} />
+      <ellipse cx={150} cy={256} rx={12} ry={3} fill={skinDark} opacity={0.4} />
+    </g>
+  ) : null;
+
+  switch (id) {
+    case "barefoot":
+      // Just bare feet - small skin ellipses
+      return (
+        <g>
+          {calves}
+          <ellipse cx={90}  cy={284} rx={20} ry={9} fill={skinColor} />
+          <ellipse cx={150} cy={284} rx={20} ry={9} fill={skinColor} />
+          <ellipse cx={90}  cy={290} rx={20} ry={4} fill={skinDark} opacity={0.5} />
+          <ellipse cx={150} cy={290} rx={20} ry={4} fill={skinDark} opacity={0.5} />
+        </g>
+      );
+    case "sneakers":
+      return (
+        <g>
+          {calves}
+          {/* Body */}
+          <path d="M68 284 Q68 272 90 272 L112 272 Q116 280 116 290 L68 290 Z" fill={color} stroke={dark} strokeWidth={1.2} />
+          <path d="M128 284 Q128 272 150 272 L172 272 Q176 280 176 290 L128 290 Z" fill={color} stroke={dark} strokeWidth={1.2} />
+          {/* Stripe */}
+          <path d="M76 280 Q90 274 110 280" stroke="#dc2626" strokeWidth={2.5} fill="none" />
+          <path d="M136 280 Q150 274 170 280" stroke="#dc2626" strokeWidth={2.5} fill="none" />
+          {/* Sole */}
+          <rect x={66} y={288} width={52} height={6} rx={2} fill="#1f2937" />
+          <rect x={126} y={288} width={52} height={6} rx={2} fill="#1f2937" />
+        </g>
+      );
+    case "boots":
+      return (
+        <g>
+          {calves}
+          {/* Tall boot extending up calves */}
+          <rect x={72}  y={258} width={36} height={32} rx={4} fill={color} stroke={dark} strokeWidth={1.2} />
+          <rect x={132} y={258} width={36} height={32} rx={4} fill={color} stroke={dark} strokeWidth={1.2} />
+          {/* Toe box */}
+          <ellipse cx={94}  cy={290} rx={26} ry={7} fill={color} stroke={dark} strokeWidth={1.2} />
+          <ellipse cx={154} cy={290} rx={26} ry={7} fill={color} stroke={dark} strokeWidth={1.2} />
+          {/* Laces */}
+          <line x1={78}  y1={266} x2={102} y2={266} stroke="#fbbf24" strokeWidth={1} />
+          <line x1={78}  y1={272} x2={102} y2={272} stroke="#fbbf24" strokeWidth={1} />
+          <line x1={138} y1={266} x2={162} y2={266} stroke="#fbbf24" strokeWidth={1} />
+          <line x1={138} y1={272} x2={162} y2={272} stroke="#fbbf24" strokeWidth={1} />
+        </g>
+      );
+    case "heels":
+      return (
+        <g>
+          {calves}
+          <path d="M70 282 Q70 274 90 274 L120 274 L118 286 L70 286 Z" fill={color} stroke={dark} strokeWidth={1.2} />
+          <path d="M130 282 Q130 274 150 274 L180 274 L178 286 L130 286 Z" fill={color} stroke={dark} strokeWidth={1.2} />
+          {/* Heel */}
+          <rect x={78} y={286} width={4} height={10} fill={dark} />
+          <rect x={138} y={286} width={4} height={10} fill={dark} />
+          {/* Sole */}
+          <path d="M70 286 L120 286 L118 290 L70 290 Z" fill="#1f2937" />
+          <path d="M130 286 L180 286 L178 290 L130 290 Z" fill="#1f2937" />
+        </g>
+      );
+    case "sandals":
+      return (
+        <g>
+          {calves}
+          {/* Foot */}
+          <ellipse cx={90}  cy={286} rx={22} ry={7} fill={skinColor} />
+          <ellipse cx={150} cy={286} rx={22} ry={7} fill={skinColor} />
+          {/* Sole */}
+          <path d="M68 290 L112 290 L110 294 L70 294 Z" fill={color} stroke={dark} strokeWidth={1} />
+          <path d="M128 290 L172 290 L170 294 L130 294 Z" fill={color} stroke={dark} strokeWidth={1} />
+          {/* Straps */}
+          <path d="M76 286 Q90 280 104 286" fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" />
+          <path d="M136 286 Q150 280 164 286" fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" />
+          <line x1={90}  y1={282} x2={90}  y2={290} stroke={color} strokeWidth={2.5} strokeLinecap="round" />
+          <line x1={150} y1={282} x2={150} y2={290} stroke={color} strokeWidth={2.5} strokeLinecap="round" />
         </g>
       );
   }
