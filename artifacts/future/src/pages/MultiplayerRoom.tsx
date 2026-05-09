@@ -24,6 +24,8 @@ import { MultiplayerMarketPanel } from "@/components/multiplayer/MultiplayerMark
 import { HoldingsList } from "@/components/dashboard/HoldingsList";
 import { SaveCodeModal } from "@/components/SaveCodeModal";
 import { FinalStandings } from "@/components/FinalStandings";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { DEFAULT_AVATAR } from "@/lib/avatar";
 import { formatCurrency, cn } from "@/lib/utils";
 
 export function MultiplayerRoom() {
@@ -319,8 +321,8 @@ function Lobby({
                   key={p.id}
                   className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5"
                 >
-                  <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-display font-bold">
-                    {p.name.slice(0, 1).toUpperCase()}
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#152042] to-[#0a0e25] flex items-end justify-center overflow-hidden shrink-0 border border-white/5">
+                    <PlayerAvatar avatar={p.avatar ?? DEFAULT_AVATAR} size={56} compact />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold truncate">{p.name}</div>

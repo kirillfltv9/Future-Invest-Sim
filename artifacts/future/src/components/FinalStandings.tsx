@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Crown, Medal, Trophy, ChevronDown, RotateCcw, Home } from "lucide-react";
 import type { LeaderboardEntry } from "@/lib/multiplayerSocket";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { DEFAULT_AVATAR } from "@/lib/avatar";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -187,12 +189,12 @@ function PodiumBlock({ entry, rank, delay, isMe }: BlockProps) {
         animate={{ scale: 1, rotate: 0 }}
         transition={{ type: "spring", stiffness: 200, damping: 14, delay: delay + 0.15 }}
         className={cn(
-          "absolute left-1/2 -translate-x-1/2 top-0 z-10 w-20 h-20 rounded-full ring-4 flex items-center justify-center font-display font-bold text-2xl text-white bg-gradient-to-br",
-          avatarBg,
+          "absolute left-1/2 -translate-x-1/2 -top-4 z-10 w-24 h-24 rounded-2xl ring-4 overflow-hidden flex items-end justify-center bg-gradient-to-b from-[#152042] to-[#0a0e25]",
+          rank === 1 ? avatarBg : "",
           style.avatarRing,
         )}
       >
-        {initialsOf(entry.name)}
+        <PlayerAvatar avatar={entry.avatar ?? DEFAULT_AVATAR} size={92} compact />
       </motion.div>
 
       {/* The block itself */}
@@ -418,13 +420,8 @@ export function FinalStandings({
                         <div className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center font-display font-bold bg-white/5 text-muted-foreground">
                           #{entry.displayRank}
                         </div>
-                        <div
-                          className={cn(
-                            "w-9 h-9 shrink-0 rounded-full bg-gradient-to-br flex items-center justify-center text-sm font-display font-bold text-white",
-                            avatarGradient(entry.name),
-                          )}
-                        >
-                          {initialsOf(entry.name)}
+                        <div className="w-10 h-10 shrink-0 rounded-lg bg-[#0a0e25] border border-white/10 overflow-hidden flex items-end justify-center">
+                          <PlayerAvatar avatar={entry.avatar ?? DEFAULT_AVATAR} size={40} compact />
                         </div>
                         <div className="flex-1 min-w-0 truncate">
                           <span className="font-semibold">{entry.name}</span>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import type { AvatarConfig } from "./avatar";
 
 export type RoomStatus = "lobby" | "playing" | "finished";
 export type MarketMode = "stocks" | "crypto" | "mixed";
@@ -8,6 +9,7 @@ export interface RoomPlayerSummary {
   name: string;
   isHost: boolean;
   connected: boolean;
+  avatar?: AvatarConfig | null;
 }
 
 export interface PendingJoinSummary {
@@ -39,6 +41,7 @@ export interface LeaderboardEntry {
   rank: number;
   previousRank: number | null;
   rankDelta: number;
+  avatar?: AvatarConfig | null;
 }
 
 export interface RoomState {
@@ -94,6 +97,7 @@ export interface MultiplayerIntent {
   totalRounds?: number;
   joinCode?: string;
   resumeToken?: string;
+  avatar?: AvatarConfig;
 }
 
 const INTENT_KEY = "future_mp_intent";
@@ -183,6 +187,7 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
           marketMode: intent.marketMode ?? "stocks",
           startingCash: intent.startingCash ?? 10000,
           totalRounds: intent.totalRounds ?? 10,
+          avatar: intent.avatar ?? null,
         }));
       } else if (intent.mode === "resume") {
         socket.send(JSON.stringify({
@@ -194,6 +199,7 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
           type: "join_request",
           playerName: intent.playerName,
           roomCode: (intent.joinCode ?? "").toUpperCase(),
+          avatar: intent.avatar ?? null,
         }));
       }
     });

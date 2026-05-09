@@ -16,6 +16,7 @@ import {
   reattachSocketToPlayer,
   startGame,
   type MarketMode,
+  type AvatarConfig,
 } from "./multiplayer.js";
 import { createMultiplayerSave, consumeResumeToken } from "./saves.js";
 
@@ -63,6 +64,37 @@ function sanitizeRounds(input: unknown): number {
   return Math.floor(n);
 }
 
+const SKIN_IDS       = new Set(["light", "tan", "brown", "deep", "gold"]);
+const HAIR_IDS       = new Set(["bald", "short", "long", "curly", "mohawk", "ponytail"]);
+const EXPRESSION_IDS = new Set(["smile", "smirk", "shades", "monocle", "wink"]);
+const HAT_IDS        = new Set(["none", "cap", "beanie", "tophat", "crown"]);
+const TOP_IDS        = new Set(["tee", "hoodie", "suit", "jersey", "racing"]);
+const BOTTOMS_IDS    = new Set(["jeans", "shorts", "slacks", "sweats"]);
+
+function pickEnum(value: unknown, allowed: Set<string>, fallback: string): string {
+  return typeof value === "string" && allowed.has(value) ? value : fallback;
+}
+
+function sanitizeAvatar(input: unknown): AvatarConfig | null {
+  if (!input || typeof input !== "object") return null;
+  const r = input as Record<string, unknown>;
+  const labelRaw = typeof r["topLabel"] === "string" ? r["topLabel"] : "";
+  const topLabel = labelRaw
+    // printable ASCII only
+    .replace(/[^\x20-\x7E]/g, "")
+    .slice(0, 8)
+    .trimEnd();
+  return {
+    skin:       pickEnum(r["skin"],       SKIN_IDS,       "tan"),
+    hair:       pickEnum(r["hair"],       HAIR_IDS,       "short"),
+    expression: pickEnum(r["expression"], EXPRESSION_IDS, "smile"),
+    hat:        pickEnum(r["hat"],        HAT_IDS,        "none"),
+    top:        pickEnum(r["top"],        TOP_IDS,        "tee"),
+    topLabel,
+    bottoms:    pickEnum(r["bottoms"],    BOTTOMS_IDS,    "jeans"),
+  };
+}
+
 function handleHostRoom(socket: WebSocket, msg: ClientMessage): void {
   const playerName = sanitizeName(msg["playerName"]);
   if (!playerName) {
@@ -79,6 +111,7 @@ function handleHostRoom(socket: WebSocket, msg: ClientMessage): void {
     marketMode,
     startingCash,
     totalRounds,
+    avatar: sanitizeAvatar(msg["avatar"]),
   });
 
   send(socket, "room_created", {
@@ -101,7 +134,12 @@ function handleJoinRequest(socket: WebSocket, msg: ClientMessage): void {
     return;
   }
 
-  const result = addPendingJoin({ roomCode, playerName, socket });
+  const result = addPendingJoin({
+    roomCode,
+    playerName,
+    socket,
+    avatar: sanitizeAvatar(msg["avatar"]),
+  });
   if (!result.ok) {
     send(socket, "join_denied", { reason: result.reason });
     return;

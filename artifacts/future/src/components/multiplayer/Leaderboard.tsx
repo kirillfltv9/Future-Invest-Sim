@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Crown, ArrowUp, ArrowDown, Minus, Users, ChevronRight, ChevronLeft, Wifi, WifiOff } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 import type { LeaderboardEntry } from "@/lib/multiplayerSocket";
+import { PlayerAvatar } from "@/components/PlayerAvatar";
+import { DEFAULT_AVATAR } from "@/lib/avatar";
 
 interface LeaderboardProps {
   entries: LeaderboardEntry[];
@@ -111,7 +113,7 @@ export function Leaderboard({
                         : "bg-white/5 border-white/5",
                     )}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <div
                         className={cn(
                           "w-7 h-7 rounded-lg flex items-center justify-center font-display font-bold text-sm shrink-0",
@@ -125,6 +127,10 @@ export function Leaderboard({
                         )}
                       >
                         {isLeader ? <Crown className="w-4 h-4" /> : entry.rank}
+                      </div>
+
+                      <div className="w-9 h-9 rounded-lg bg-[#0a0e25] border border-white/5 overflow-hidden flex items-end justify-center shrink-0">
+                        <PlayerAvatar avatar={entry.avatar ?? DEFAULT_AVATAR} size={36} compact />
                       </div>
 
                       <div className="flex-1 min-w-0">

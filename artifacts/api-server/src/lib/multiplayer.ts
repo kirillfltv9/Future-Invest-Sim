@@ -14,6 +14,16 @@ import { getStocksByMode } from "./stocks.js";
 export type MarketMode = "stocks" | "crypto" | "mixed";
 export type RoomStatus = "lobby" | "playing" | "finished";
 
+export interface AvatarConfig {
+  skin: string;
+  hair: string;
+  expression: string;
+  hat: string;
+  top: string;
+  topLabel: string;
+  bottoms: string;
+}
+
 export interface MultiplayerPlayer {
   id: string;
   name: string;
@@ -24,6 +34,7 @@ export interface MultiplayerPlayer {
   startingCash: number;
   joinedAtRound: number;
   connected: boolean;
+  avatar: AvatarConfig | null;
 }
 
 export interface PendingJoin {
@@ -31,6 +42,7 @@ export interface PendingJoin {
   playerName: string;
   socket: WebSocket;
   createdAt: number;
+  avatar: AvatarConfig | null;
 }
 
 export interface RankSnapshot {
@@ -106,6 +118,7 @@ export function createRoom(opts: {
   marketMode: MarketMode;
   startingCash: number;
   totalRounds: number;
+  avatar: AvatarConfig | null;
 }): { room: MultiplayerRoom; player: MultiplayerPlayer } {
   const code = generateRoomCode();
   const gameSeed = seedFromCode(code);
@@ -123,6 +136,7 @@ export function createRoom(opts: {
     startingCash: opts.startingCash,
     joinedAtRound: 0,
     connected: true,
+    avatar: opts.avatar,
   };
 
   const room: MultiplayerRoom = {
@@ -156,6 +170,7 @@ export function addPendingJoin(opts: {
   roomCode: string;
   playerName: string;
   socket: WebSocket;
+  avatar: AvatarConfig | null;
 }): { ok: true; requestId: string } | { ok: false; reason: string } {
   const room = getRoom(opts.roomCode);
   if (!room) return { ok: false, reason: "Room not found" };
@@ -175,6 +190,7 @@ export function addPendingJoin(opts: {
     playerName: opts.playerName,
     socket: opts.socket,
     createdAt: Date.now(),
+    avatar: opts.avatar,
   });
   return { ok: true, requestId };
 }
@@ -208,6 +224,7 @@ export function acceptJoin(opts: {
     startingCash: room.startingCash,
     joinedAtRound: room.currentRound,
     connected: true,
+    avatar: pending.avatar,
   };
 
   room.players.set(playerId, player);
@@ -357,6 +374,7 @@ export interface LeaderboardEntry {
   rank: number;
   previousRank: number | null;
   rankDelta: number; // positive = moved up
+  avatar: AvatarConfig | null;
 }
 
 function portfolioValue(player: MultiplayerPlayer, prices: StockPrice[]): number {
@@ -386,6 +404,7 @@ export function computeLeaderboard(room: MultiplayerRoom): LeaderboardEntry[] {
       totalValue: parseFloat(total.toFixed(2)),
       startingCash: p.startingCash,
       returnPercent: parseFloat(returnPercent.toFixed(2)),
+      avatar: p.avatar,
     };
   });
   entries.sort((a, b) => b.totalValue - a.totalValue);
@@ -425,6 +444,7 @@ export interface RoomPublicState {
     name: string;
     isHost: boolean;
     connected: boolean;
+    avatar: AvatarConfig | null;
   }>;
   pendingJoins: Array<{ requestId: string; playerName: string }>;
   leaderboard: LeaderboardEntry[];
@@ -460,6 +480,7 @@ export function buildRoomPublicState(room: MultiplayerRoom): RoomPublicState {
       name: p.name,
       isHost: p.isHost,
       connected: p.connected,
+      avatar: p.avatar,
     })),
     pendingJoins: Array.from(room.pendingJoins.values()).map((p) => ({
       requestId: p.requestId,
@@ -571,6 +592,7 @@ export interface RoomSnapshot {
     holdings: Holding[];
     startingCash: number;
     joinedAtRound: number;
+    avatar: AvatarConfig | null;
   }>;
 }
 
@@ -600,6 +622,7 @@ export function exportRoomSnapshot(room: MultiplayerRoom): RoomSnapshot {
         holdings: p.holdings,
         startingCash: p.startingCash,
         joinedAtRound: p.joinedAtRound,
+        avatar: p.avatar,
       })),
     }),
   );
@@ -618,6 +641,7 @@ export function importRoomSnapshot(snapshot: RoomSnapshot): MultiplayerRoom {
       startingCash: p.startingCash,
       joinedAtRound: p.joinedAtRound,
       connected: false,
+      avatar: p.avatar ?? null,
     });
   }
   const room: MultiplayerRoom = {

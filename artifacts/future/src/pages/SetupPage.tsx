@@ -80,7 +80,7 @@ export function SetupPage() {
       marketMode: mode,
       startingCash: parsedCash,
     });
-    setLocation("/multiplayer");
+    setLocation("/multiplayer/avatar");
   };
 
   const confirmJoin = () => {
@@ -92,7 +92,7 @@ export function SetupPage() {
       playerName: name.trim(),
       joinCode: joinCode.trim().toUpperCase(),
     });
-    setLocation("/multiplayer");
+    setLocation("/multiplayer/avatar");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
