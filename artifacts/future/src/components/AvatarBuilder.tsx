@@ -10,6 +10,7 @@ import {
   saveStoredAvatar,
 } from "@/lib/avatar";
 import { PlayerAvatar } from "./PlayerAvatar";
+import { Avatar3D } from "./Avatar3D";
 import { cn } from "@/lib/utils";
 
 type CategoryId = "skin" | "hair" | "expression" | "hat" | "top" | "bottoms" | "shoes";
@@ -137,18 +138,11 @@ export function AvatarBuilder({ initialAvatar, playerName, onConfirm, confirmLab
                 {/* Pedestal */}
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-56 h-3 rounded-full bg-gradient-to-r from-transparent via-amber-400/40 to-transparent blur-sm" />
 
-                <div className="absolute inset-0 flex items-center justify-center pt-6">
-                  <AnimatePresence mode="popLayout">
-                    <motion.div
-                      key={JSON.stringify(avatar)}
-                      initial={{ scale: 0.92, opacity: 0, y: 10 }}
-                      animate={{ scale: 1, opacity: 1, y: 0 }}
-                      exit={{ scale: 1.02, opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 280, damping: 22 }}
-                    >
-                      <PlayerAvatar avatar={avatar} size={260} />
-                    </motion.div>
-                  </AnimatePresence>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Avatar3D avatar={avatar} size={340} interactive autoRotate />
+                </div>
+                <div className="absolute bottom-12 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.2em] text-amber-300/40 pointer-events-none">
+                  Drag to rotate
                 </div>
 
                 {/* Player name plate */}
