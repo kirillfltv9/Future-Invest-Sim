@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Users,
   Copy,
@@ -11,11 +11,10 @@ import {
   Play,
   Clock,
   Calendar,
-  Newspaper,
-  Trophy,
-  Wifi,
   Sparkles,
   Save,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useListStocks } from "@workspace/api-client-react";
 import { useMultiplayerRoom, clearMultiplayerIntent } from "@/lib/multiplayerSocket";
@@ -27,6 +26,22 @@ import { FinalStandings } from "@/components/FinalStandings";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { DEFAULT_AVATAR } from "@/lib/avatar";
 import { formatCurrency, cn } from "@/lib/utils";
+import { StockTicker } from "@/components/StockTicker";
+import { MarketEventCard } from "@/components/MarketEventCard";
+import { AnimatedNumber } from "@/components/AnimatedNumber";
+import { ChatPanel, FloatingReactions, REACTIONS } from "@/components/ChatPanel";
+import { AchievementToast } from "@/components/AchievementToast";
+import { useAchievementDetector } from "@/lib/useAchievementDetector";
+import type { Achievement } from "@/lib/achievements";
+import {
+  startAmbientLoop,
+  stopAmbientLoop,
+  setMuted as setSoundsMuted,
+  isMuted as soundsIsMuted,
+  playChatDing,
+  playReactionPop,
+  playCashClink,
+} from "@/lib/sounds";
 
 export function MultiplayerRoom() {
   const [, setLocation] = useLocation();
@@ -154,9 +169,8 @@ export function MultiplayerRoom() {
   // Finished
   if (mp.room.status === "finished") {
     return (
-      <FinalStandings
-        leaderboard={mp.room.leaderboard}
-        roomCode={mp.room.code}
+      <FinishedView
+        room={mp.room}
         myPlayerId={mp.myPlayerId}
         onPlayAgain={() => {
           mp.leave();
@@ -164,6 +178,8 @@ export function MultiplayerRoom() {
           setLocation("/setup");
         }}
         onLeave={goHome}
+        startingCash={mp.room.startingCash}
+        you={mp.you}
       />
     );
   }
@@ -177,14 +193,56 @@ export function MultiplayerRoom() {
         stocks={stocks}
         isHost={mp.isHost}
         myPlayerId={mp.myPlayerId}
+        chatMessages={mp.chatMessages}
+        liveReactions={mp.liveReactions}
+        consumeReaction={mp.consumeReaction}
         onTrade={mp.trade}
         onNextRound={mp.nextRound}
+        onSendChat={mp.sendChat}
+        onReact={mp.sendReaction}
         onSave={() => setShowSave(true)}
         onLeave={goHome}
         collapsed={collapsed}
         setCollapsed={setCollapsed}
       />
       {saveModal}
+    </>
+  );
+}
+
+// FINISHED — wraps FinalStandings with achievement detection so 'top_trader' fires.
+function FinishedView({
+  room, myPlayerId, you, startingCash, onPlayAgain, onLeave,
+}: {
+  room: NonNullable<ReturnType<typeof useMultiplayerRoom>["room"]>;
+  myPlayerId: string | null;
+  you: ReturnType<typeof useMultiplayerRoom>["you"];
+  startingCash: number;
+  onPlayAgain: () => void;
+  onLeave: () => void;
+}) {
+  const [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]);
+  const dismiss = useCallback((id: string) => {
+    setAchievementQueue((q) => q.filter((a) => a.id !== id));
+  }, []);
+  const handleUnlock = useCallback((a: Achievement) => {
+    setAchievementQueue((q) => (q.some((x) => x.id === a.id) ? q : [...q, a]));
+  }, []);
+
+  useAchievementDetector({ room, you, myPlayerId, startingCash, onUnlock: handleUnlock });
+
+  useEffect(() => { stopAmbientLoop(); }, []);
+
+  return (
+    <>
+      <FinalStandings
+        leaderboard={room.leaderboard}
+        roomCode={room.code}
+        myPlayerId={myPlayerId}
+        onPlayAgain={onPlayAgain}
+        onLeave={onLeave}
+      />
+      <AchievementToast queue={achievementQueue} onDismiss={dismiss} />
     </>
   );
 }
@@ -409,8 +467,13 @@ function PlayingView({
   stocks,
   isHost,
   myPlayerId,
+  chatMessages,
+  liveReactions,
+  consumeReaction,
   onTrade,
   onNextRound,
+  onSendChat,
+  onReact,
   onSave,
   onLeave,
   collapsed,
@@ -421,8 +484,13 @@ function PlayingView({
   stocks: ReturnType<typeof useListStocks>["data"];
   isHost: boolean;
   myPlayerId: string | null;
+  chatMessages: ReturnType<typeof useMultiplayerRoom>["chatMessages"];
+  liveReactions: ReturnType<typeof useMultiplayerRoom>["liveReactions"];
+  consumeReaction: (id: string) => void;
   onTrade: (ticker: string, action: "buy" | "sell", shares: number) => void;
   onNextRound: () => void;
+  onSendChat: (text: string) => void;
+  onReact: (kind: string) => void;
   onSave: () => void;
   onLeave: () => void;
   collapsed: boolean;
@@ -467,8 +535,137 @@ function PlayingView({
 
   const lastRound = room.currentRound >= room.totalRounds - 1;
 
+  // ── Sound: ambient music + mute toggle ────────────────────────────────────
+  const [muted, setMutedState] = useState(() => soundsIsMuted());
+  useEffect(() => {
+    if (!muted) startAmbientLoop("calm");
+    return () => stopAmbientLoop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const toggleMute = useCallback(() => {
+    const next = !muted;
+    setMutedState(next);
+    setSoundsMuted(next);
+    if (!next) startAmbientLoop("calm"); else stopAmbientLoop();
+  }, [muted]);
+
+  // ── Chat: open state, unread badge, ding on incoming ──────────────────────
+  // We use last-seen ID (not array length) so capped arrays still trigger.
+  const [chatOpen, setChatOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+  const lastSeenChatIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (chatMessages.length === 0) return;
+    const lastSeen = lastSeenChatIdRef.current;
+    let firstNewIdx = -1;
+    if (lastSeen === null) {
+      firstNewIdx = chatMessages.length; // initial mount: nothing is "new"
+    } else {
+      const idx = chatMessages.findIndex((m) => m.id === lastSeen);
+      firstNewIdx = idx === -1 ? 0 : idx + 1;
+    }
+    const fresh = chatMessages.slice(firstNewIdx).filter((m) => m.from !== myPlayerId);
+    if (fresh.length > 0) {
+      if (!muted) playChatDing();
+      if (!chatOpen) setUnread((u) => u + fresh.length);
+    }
+    lastSeenChatIdRef.current = chatMessages[chatMessages.length - 1]!.id;
+  }, [chatMessages, chatOpen, myPlayerId, muted]);
+
+  useEffect(() => {
+    if (chatOpen) setUnread(0);
+  }, [chatOpen]);
+
+  // ── Reactions: pop sound on new ones (track by last-seen ID) ─────────────
+  const lastSeenReactionIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (liveReactions.length === 0) return;
+    const lastSeen = lastSeenReactionIdRef.current;
+    let isNew = false;
+    if (lastSeen === null) {
+      // initial: don't pop for already-present ones
+    } else {
+      const idx = liveReactions.findIndex((r) => r.id === lastSeen);
+      isNew = idx === -1 || idx < liveReactions.length - 1;
+    }
+    if (isNew && !muted) playReactionPop();
+    lastSeenReactionIdRef.current = liveReactions[liveReactions.length - 1]!.id;
+  }, [liveReactions, muted]);
+
+  // ── Market event card: triggered when news headline changes ──────────────
+  const [eventCard, setEventCard] = useState<{
+    headline: string;
+    body?: string;
+    sentiment: "bullish" | "bearish" | "neutral";
+    affected: string[];
+  } | null>(null);
+  const lastHeadlineRef = useRef<string | null>(null);
+  useEffect(() => {
+    const headline = room.news[0];
+    if (!headline) return;
+    if (headline === lastHeadlineRef.current) return;
+    lastHeadlineRef.current = headline;
+    // Heuristic: detect tickers mentioned in headline (uppercase 2-5 char words)
+    const tickerRegex = /\b[A-Z]{2,5}\b/g;
+    const validTickers = new Set(room.prices.map((p) => p.ticker));
+    const mentioned = Array.from(new Set(headline.match(tickerRegex) ?? []))
+      .filter((t) => validTickers.has(t));
+    const sentiment = room.sentiment;
+    setEventCard({ headline, body: room.news[1], sentiment, affected: mentioned });
+  }, [room.news, room.prices, room.sentiment]);
+
+  // ── Achievements ─────────────────────────────────────────────────────────
+  const [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]);
+  const handleUnlock = useCallback((a: Achievement) => {
+    setAchievementQueue((q) => (q.some((x) => x.id === a.id) ? q : [...q, a]));
+  }, []);
+  const dismissAchievement = useCallback((id: string) => {
+    setAchievementQueue((q) => q.filter((a) => a.id !== id));
+  }, []);
+  useAchievementDetector({
+    room, you, myPlayerId, startingCash, onUnlock: handleUnlock,
+  });
+
+  // ── Trade wrapper — pass through; cash clink fires on confirmed holdings
+  //    change below to avoid playing sounds for failed/rejected trades.
+  const handleTrade = onTrade;
+
+  // Detect confirmed trade by holdings shares signature change → play clink.
+  const lastHoldingsSigRef = useRef<string | null>(null);
+  useEffect(() => {
+    const sig = (you?.holdings ?? [])
+      .map((h) => `${h.ticker}:${h.shares}`)
+      .sort()
+      .join("|");
+    if (lastHoldingsSigRef.current !== null && sig !== lastHoldingsSigRef.current) {
+      if (!muted) playCashClink();
+    }
+    lastHoldingsSigRef.current = sig;
+  }, [you?.holdings, muted]);
+
+  // Resolve emoji for live reactions
+  const floatingItems = useMemo(
+    () =>
+      liveReactions.map((r) => ({
+        id: r.id,
+        from: r.from,
+        emoji: REACTIONS.find((x) => x.id === r.kind)?.emoji ?? "✨",
+      })),
+    [liveReactions]
+  );
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">
+      {/* Market event popup */}
+      <MarketEventCard
+        open={!!eventCard}
+        headline={eventCard?.headline ?? ""}
+        body={eventCard?.body}
+        sentiment={eventCard?.sentiment ?? "neutral"}
+        affectedTickers={eventCard?.affected ?? []}
+        onClose={() => setEventCard(null)}
+      />
+
       {/* Header */}
       <header className="h-16 border-b border-white/5 bg-black/20 backdrop-blur-md flex items-center justify-between px-6 shrink-0 sticky top-0 z-30">
         <div className="flex items-center gap-4">
@@ -524,6 +721,14 @@ function PlayingView({
             Save
           </button>
           <button
+            onClick={toggleMute}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-lg border border-white/10 text-muted-foreground hover:text-foreground hover:border-white/20"
+            title={muted ? "Unmute audio" : "Mute audio"}
+            aria-label={muted ? "Unmute audio" : "Mute audio"}
+          >
+            {muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+          </button>
+          <button
             onClick={onLeave}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border border-white/10 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/10"
           >
@@ -532,6 +737,9 @@ function PlayingView({
           </button>
         </div>
       </header>
+
+      {/* Live stock ticker tape */}
+      <StockTicker prices={room.prices} className="shrink-0 sticky top-16 z-20" />
 
       <main
         className={cn(
@@ -561,7 +769,10 @@ function PlayingView({
                     Your Portfolio
                   </div>
                   <div className="text-4xl md:text-5xl font-display font-bold tracking-tight mb-2">
-                    {formatCurrency(totalValue)}
+                    <AnimatedNumber
+                      value={totalValue}
+                      format={(n) => formatCurrency(n)}
+                    />
                   </div>
                   <div
                     className={cn(
@@ -583,7 +794,10 @@ function PlayingView({
                 <div className="space-y-1 md:border-l border-white/10 md:pl-6">
                   <div className="text-muted-foreground font-medium text-sm">Cash</div>
                   <div className="text-2xl md:text-3xl font-display font-bold text-financial">
-                    {formatCurrency(you?.cash ?? room.startingCash)}
+                    <AnimatedNumber
+                      value={you?.cash ?? room.startingCash}
+                      format={(n) => formatCurrency(n)}
+                    />
                   </div>
                   <div className="text-sm text-muted-foreground mt-2">
                     Across {(you?.holdings ?? []).length} assets
@@ -592,15 +806,27 @@ function PlayingView({
               </div>
             </motion.div>
 
-            {/* News */}
+            {/* News feed (latest at top, popup card handles primary alert) */}
             {room.news.length > 0 && (
               <div className="bg-black/30 border border-white/5 rounded-2xl p-4 flex items-start gap-4">
                 <div className="shrink-0 p-2 bg-white/5 rounded-lg text-muted-foreground">
-                  <Newspaper className="w-5 h-5" />
+                  <Sparkles className="w-5 h-5" />
                 </div>
                 <div className="flex-1 space-y-2">
-                  <h4 className="text-sm font-semibold uppercase tracking-wider">
-                    Market News
+                  <h4 className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                    Market Wire
+                    <span
+                      className={cn(
+                        "text-[10px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded",
+                        room.sentiment === "bullish"
+                          ? "bg-emerald-500/20 text-emerald-300"
+                          : room.sentiment === "bearish"
+                          ? "bg-red-500/20 text-red-300"
+                          : "bg-amber-500/20 text-amber-200"
+                      )}
+                    >
+                      {room.sentiment}
+                    </span>
                   </h4>
                   <ul className="space-y-1">
                     {room.news.map((n, i) => (
@@ -642,7 +868,7 @@ function PlayingView({
               holdings={you?.holdings ?? []}
               cashBalance={you?.cash ?? 0}
               canTrade={room.status === "playing"}
-              onTrade={onTrade}
+              onTrade={handleTrade}
             />
           </motion.div>
         </div>
@@ -656,7 +882,7 @@ function PlayingView({
           holdings={you?.holdings ?? []}
           cashBalance={you?.cash ?? 0}
           canTrade={room.status === "playing"}
-          onTrade={onTrade}
+          onTrade={handleTrade}
         />
       </div>
 
@@ -668,6 +894,23 @@ function PlayingView({
         currentRound={room.currentRound}
         totalRounds={room.totalRounds}
       />
+
+      {/* Live floating reactions */}
+      <FloatingReactions reactions={floatingItems} onExpire={consumeReaction} />
+
+      {/* Chat panel + reactions */}
+      <ChatPanel
+        messages={chatMessages}
+        myPlayerId={myPlayerId}
+        onSend={onSendChat}
+        onReact={onReact}
+        open={chatOpen}
+        onToggle={() => setChatOpen((v) => !v)}
+        unread={unread}
+      />
+
+      {/* Achievement toasts */}
+      <AchievementToast queue={achievementQueue} onDismiss={dismissAchievement} />
     </div>
   );
 }

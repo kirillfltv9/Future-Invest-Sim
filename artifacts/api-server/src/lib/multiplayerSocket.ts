@@ -290,6 +290,75 @@ function handleLeave(socket: WebSocket): void {
   try { socket.close(); } catch { /* ignore */ }
 }
 
+const REACTION_KINDS = new Set(["rocket", "moneybag", "chart", "skull", "fire", "diamond"]);
+
+// Per-socket simple token-bucket-style minimum-interval rate limit.
+interface RateState { lastChatMs: number; lastReactionMs: number; }
+const rateBySocket = new WeakMap<WebSocket, RateState>();
+const MIN_CHAT_MS = 600;     // ≈ 100/min ceiling per player
+const MIN_REACTION_MS = 250; // ≈ 240/min per player
+
+function checkRate(sock: WebSocket, kind: "chat" | "reaction"): boolean {
+  const now = Date.now();
+  const state = rateBySocket.get(sock) ?? { lastChatMs: 0, lastReactionMs: 0 };
+  if (kind === "chat") {
+    if (now - state.lastChatMs < MIN_CHAT_MS) return false;
+    state.lastChatMs = now;
+  } else {
+    if (now - state.lastReactionMs < MIN_REACTION_MS) return false;
+    state.lastReactionMs = now;
+  }
+  rateBySocket.set(sock, state);
+  return true;
+}
+
+function handleChatMessage(socket: WebSocket, msg: ClientMessage): void {
+  const ref = getRoomBySocket(socket);
+  if (!ref) return;
+  if (!checkRate(socket, "chat")) return;
+  const raw = typeof msg["text"] === "string" ? msg["text"] : "";
+  const text = raw.trim().slice(0, 200);
+  if (!text) return;
+  const player = ref.room.players.get(ref.playerId);
+  if (!player) return;
+
+  const payload = {
+    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    from: player.id,
+    name: player.name,
+    text,
+    ts: Date.now(),
+  };
+
+  for (const p of ref.room.players.values()) {
+    if (!p.socket || p.socket.readyState !== WebSocket.OPEN) continue;
+    send(p.socket, "chat_message", payload);
+  }
+}
+
+function handleReaction(socket: WebSocket, msg: ClientMessage): void {
+  const ref = getRoomBySocket(socket);
+  if (!ref) return;
+  if (!checkRate(socket, "reaction")) return;
+  const kind = typeof msg["kind"] === "string" ? msg["kind"] : "";
+  if (!REACTION_KINDS.has(kind)) return;
+  const player = ref.room.players.get(ref.playerId);
+  if (!player) return;
+
+  const payload = {
+    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    from: player.id,
+    name: player.name,
+    kind,
+    ts: Date.now(),
+  };
+
+  for (const p of ref.room.players.values()) {
+    if (!p.socket || p.socket.readyState !== WebSocket.OPEN) continue;
+    send(p.socket, "reaction", payload);
+  }
+}
+
 export function attachMultiplayerSocket(server: HttpServer): WebSocketServer {
   const wss = new WebSocketServer({ server, path: "/api/multiplayer/ws" });
 
@@ -334,6 +403,12 @@ export function attachMultiplayerSocket(server: HttpServer): WebSocketServer {
             break;
           case "leave":
             handleLeave(socket);
+            break;
+          case "chat_message":
+            handleChatMessage(socket, msg);
+            break;
+          case "reaction":
+            handleReaction(socket, msg);
             break;
           case "ping":
             send(socket, "pong");

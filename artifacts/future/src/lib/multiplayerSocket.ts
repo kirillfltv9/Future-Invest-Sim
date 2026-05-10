@@ -1,6 +1,22 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { loadStoredAvatar, type AvatarConfig } from "./avatar";
 
+export interface ChatMessageWire {
+  id: string;
+  from: string;
+  name: string;
+  text: string;
+  ts: number;
+}
+
+export interface ReactionWire {
+  id: string;
+  from: string;
+  name: string;
+  kind: string;
+  ts: number;
+}
+
 export type RoomStatus = "lobby" | "playing" | "finished";
 export type MarketMode = "stocks" | "crypto" | "mixed";
 
@@ -132,11 +148,16 @@ interface UseMultiplayerRoomReturn {
   you: PlayerView | null;
   myPlayerId: string | null;
   isHost: boolean;
+  chatMessages: ChatMessageWire[];
+  liveReactions: ReactionWire[];
+  consumeReaction: (id: string) => void;
   acceptJoin: (requestId: string) => void;
   denyJoin: (requestId: string) => void;
   startGame: () => void;
   nextRound: () => void;
   trade: (ticker: string, action: "buy" | "sell", shares: number) => void;
+  sendChat: (text: string) => void;
+  sendReaction: (kind: string) => void;
   saveSession: () => Promise<string>;
   leave: () => void;
   reset: () => void;
@@ -153,6 +174,8 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
   const [room, setRoom] = useState<RoomState | null>(null);
   const [you, setYou] = useState<PlayerView | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessageWire[]>([]);
+  const [liveReactions, setLiveReactions] = useState<ReactionWire[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
   const intentRef = useRef<MultiplayerIntent | null>(null);
   const closedManuallyRef = useRef(false);
@@ -257,6 +280,20 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
           if (you) setYou(you);
           break;
         }
+        case "chat_message": {
+          const m = msg as unknown as ChatMessageWire;
+          if (m.id && m.text) {
+            setChatMessages((prev) => [...prev.slice(-99), m]);
+          }
+          break;
+        }
+        case "reaction": {
+          const r = msg as unknown as ReactionWire;
+          if (r.id && r.kind) {
+            setLiveReactions((prev) => [...prev.slice(-19), r]);
+          }
+          break;
+        }
         case "error": {
           setErrorMessage((msg["message"] as string) ?? "Unknown error");
           break;
@@ -299,11 +336,17 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
     you,
     myPlayerId,
     isHost,
+    chatMessages,
+    liveReactions,
+    consumeReaction: (id: string) =>
+      setLiveReactions((prev) => prev.filter((r) => r.id !== id)),
     acceptJoin: (requestId) => sendMessage("accept_join", { requestId }),
     denyJoin: (requestId) => sendMessage("deny_join", { requestId }),
     startGame: () => sendMessage("start_game"),
     nextRound: () => sendMessage("next_round"),
     trade: (ticker, action, shares) => sendMessage("trade", { ticker, action, shares }),
+    sendChat: (text: string) => sendMessage("chat_message", { text }),
+    sendReaction: (kind: string) => sendMessage("reaction", { kind }),
     saveSession: () =>
       new Promise<string>((resolve, reject) => {
         const sock = socketRef.current;
