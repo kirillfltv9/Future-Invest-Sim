@@ -31,6 +31,7 @@ import { MarketEventCard } from "@/components/MarketEventCard";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { ChatPanel, FloatingReactions, REACTIONS } from "@/components/ChatPanel";
 import { AchievementToast } from "@/components/AchievementToast";
+import { PortfolioHistoryChart, type ValuePoint } from "@/components/PortfolioHistoryChart";
 import { useAchievementDetector } from "@/lib/useAchievementDetector";
 import type { Achievement } from "@/lib/achievements";
 import {
@@ -630,6 +631,34 @@ function PlayingView({
   //    change below to avoid playing sounds for failed/rejected trades.
   const handleTrade = onTrade;
 
+  // ── Portfolio value history (one snapshot per round) ─────────────────────
+  const [valueHistory, setValueHistory] = useState<ValuePoint[]>(() => [
+    { round: 0, totalValue: startingCash },
+  ]);
+  const lastRecordedRoundRef = useRef<number>(-1);
+  useEffect(() => {
+    if (room.currentRound !== lastRecordedRoundRef.current) {
+      lastRecordedRoundRef.current = room.currentRound;
+      setValueHistory((prev) => {
+        const next = prev.filter((p) => p.round !== room.currentRound);
+        next.push({ round: room.currentRound, totalValue });
+        next.sort((a, b) => a.round - b.round);
+        return next;
+      });
+    } else {
+      // Same round — keep latest value live so the final point follows trades.
+      setValueHistory((prev) => {
+        if (prev.length === 0) return prev;
+        const last = prev[prev.length - 1]!;
+        if (last.round !== room.currentRound) return prev;
+        if (Math.abs(last.totalValue - totalValue) < 0.01) return prev;
+        const copy = prev.slice(0, -1);
+        copy.push({ round: room.currentRound, totalValue });
+        return copy;
+      });
+    }
+  }, [room.currentRound, totalValue]);
+
   // Detect confirmed trade by holdings shares signature change → play clink.
   const lastHoldingsSigRef = useRef<string | null>(null);
   useEffect(() => {
@@ -805,6 +834,9 @@ function PlayingView({
                 </div>
               </div>
             </motion.div>
+
+            {/* Portfolio value over rounds */}
+            <PortfolioHistoryChart history={valueHistory} startingCash={startingCash} />
 
             {/* News feed (latest at top, popup card handles primary alert) */}
             {room.news.length > 0 && (
