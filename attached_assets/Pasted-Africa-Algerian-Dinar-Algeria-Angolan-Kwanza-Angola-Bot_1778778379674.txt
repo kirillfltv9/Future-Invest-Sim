@@ -1,0 +1,165 @@
+Africa
+
+* Algerian Dinar — Algeria
+* Angolan Kwanza — Angola
+* Botswana Pula — Botswana
+* Burundian Franc — Burundi
+* Cape Verdean Escudo — Cape Verde
+* CFA Franc BEAC — Central African countries
+* CFA Franc BCEAO — West African countries
+* Comorian Franc — Comoros
+* Congolese Franc — DR Congo
+* Djiboutian Franc — Djibouti
+* Egyptian Pound — Egypt
+* Eritrean Nakfa — Eritrea
+* Ethiopian Birr — Ethiopia
+* Gambian Dalasi — Gambia
+* Ghanaian Cedi — Ghana
+* Guinean Franc — Guinea
+* Kenyan Shilling — Kenya
+* Lesotho Loti — Lesotho
+* Liberian Dollar — Liberia
+* Libyan Dinar — Libya
+* Malagasy Ariary — Madagascar
+* Malawian Kwacha — Malawi
+* Mauritanian Ouguiya — Mauritania
+* Mauritian Rupee — Mauritius
+* Moroccan Dirham — Morocco
+* Mozambican Metical — Mozambique
+* Namibian Dollar — Namibia
+* Nigerian Naira — Nigeria
+* Rwandan Franc — Rwanda
+* São Tomé and Príncipe Dobra — São Tomé and Príncipe
+* Seychellois Rupee — Seychelles
+* Sierra Leonean Leone — Sierra Leone
+* Somali Shilling — Somalia
+* South African Rand — South Africa
+* South Sudanese Pound — South Sudan
+* Sudanese Pound — Sudan
+* Tanzanian Shilling — Tanzania
+* Tunisian Dinar — Tunisia
+* Ugandan Shilling — Uganda
+* Zambian Kwacha — Zambia
+* Zimbabwe Gold (ZiG) — Zimbabwe
+
+Asia
+
+* Afghan Afghani — Afghanistan
+* Armenian Dram — Armenia
+* Azerbaijani Manat — Azerbaijan
+* Bahraini Dinar — Bahrain
+* Bangladeshi Taka — Bangladesh
+* Bhutanese Ngultrum — Bhutan
+* Brunei Dollar — Brunei
+* Cambodian Riel — Cambodia
+* Chinese Yuan Renminbi — China
+* Georgian Lari — Georgia
+* Hong Kong Dollar — Hong Kong
+* Indian Rupee — India
+* Indonesian Rupiah — Indonesia
+* Iranian Rial — Iran
+* Iraqi Dinar — Iraq
+* Israeli New Shekel — Israel
+* Japanese Yen — Japan
+* Jordanian Dinar — Jordan
+* Kazakhstani Tenge — Kazakhstan
+* Kuwaiti Dinar — Kuwait
+* Kyrgyzstani Som — Kyrgyzstan
+* Lao Kip — Laos
+* Lebanese Pound — Lebanon
+* Macanese Pataca — Macau
+* Malaysian Ringgit — Malaysia
+* Maldivian Rufiyaa — Maldives
+* Mongolian Tögrög — Mongolia
+* Myanmar Kyat — Myanmar
+* Nepalese Rupee — Nepal
+* North Korean Won — North Korea
+* Omani Rial — Oman
+* Pakistani Rupee — Pakistan
+* Philippine Peso — Philippines
+* Qatari Riyal — Qatar
+* Saudi Riyal — Saudi Arabia
+* Singapore Dollar — Singapore
+* South Korean Won — South Korea
+* Sri Lankan Rupee — Sri Lanka
+* Syrian Pound — Syria
+* Tajikistani Somoni — Tajikistan
+* Thai Baht — Thailand
+* Turkish Lira — Türkiye
+* Turkmenistani Manat — Turkmenistan
+* UAE Dirham — United Arab Emirates
+* Uzbekistani Som — Uzbekistan
+* Vietnamese Đồng — Vietnam
+* Yemeni Rial — Yemen
+
+Europe
+
+* Albanian Lek — Albania
+* Belarusian Ruble — Belarus
+* Bosnia and Herzegovina Convertible Mark — Bosnia and Herzegovina
+* Bulgarian Lev — Bulgaria
+* Czech Koruna — Czech Republic
+* Danish Krone — Denmark
+* Euro — Eurozone countries
+* Gibraltar Pound — Gibraltar
+* Hungarian Forint — Hungary
+* Icelandic Króna — Iceland
+* Moldovan Leu — Moldova
+* Macedonian Denar — North Macedonia
+* Norwegian Krone — Norway
+* Polish Złoty — Poland
+* Pound Sterling — United Kingdom
+* Romanian Leu — Romania
+* Russian Ruble — Russia
+* Serbian Dinar — Serbia
+* Swedish Krona — Sweden
+* Swiss Franc — Switzerland
+* Ukrainian Hryvnia — Ukraine
+
+North America
+
+* Bahamian Dollar — Bahamas
+* Barbadian Dollar — Barbados
+* Belize Dollar — Belize
+* Bermudian Dollar — Bermuda
+* Canadian Dollar — Canada
+* Cayman Islands Dollar — Cayman Islands
+* Costa Rican Colón — Costa Rica
+* Cuban Peso — Cuba
+* Dominican Peso — Dominican Republic
+* East Caribbean Dollar — Caribbean states
+* Guatemalan Quetzal — Guatemala
+* Haitian Gourde — Haiti
+* Honduran Lempira — Honduras
+* Jamaican Dollar — Jamaica
+* Mexican Peso — Mexico
+* Nicaraguan Córdoba — Nicaragua
+* Panamanian Balboa — Panama
+* Trinidad and Tobago Dollar — Trinidad and Tobago
+* United States Dollar — United States
+
+South America
+
+* Argentine Peso — Argentina
+* Bolivian Boliviano — Bolivia
+* Brazilian Real — Brazil
+* Chilean Peso — Chile
+* Colombian Peso — Colombia
+* Falkland Islands Pound — Falkland Islands
+* Guyanese Dollar — Guyana
+* Paraguayan Guaraní — Paraguay
+* Peruvian Sol — Peru
+* Surinamese Dollar — Suriname
+* Uruguayan Peso — Uruguay
+* Venezuelan Bolívar — Venezuela
+
+Oceania
+
+* Australian Dollar — Australia
+* CFP Franc — French Pacific territories
+* Fijian Dollar — Fiji
+* New Zealand Dollar — New Zealand
+* Papua New Guinean Kina — Papua New Guinea
+* Solomon Islands Dollar — Solomon Islands
+* Tongan Paʻanga — Tonga
+* Vanuatu Vatu — Vanuatu

@@ -9,7 +9,7 @@ import {
   formatGameDate,
   type MarketSentiment,
 } from "./gameEngine.js";
-import { getStocksByMode } from "./stocks.js";
+import { getStocksByMode, type Continent } from "./stocks.js";
 
 export type MarketMode = "stocks" | "crypto" | "mixed";
 export type RoomStatus = "lobby" | "playing" | "finished";
@@ -58,6 +58,7 @@ export interface MultiplayerRoom {
   pendingJoins: Map<string, PendingJoin>;
   status: RoomStatus;
   marketMode: MarketMode;
+  continent: Continent | null;
   startingCash: number;
   totalRounds: number;
   currentRound: number;
@@ -117,13 +118,14 @@ export function createRoom(opts: {
   hostName: string;
   hostSocket: WebSocket;
   marketMode: MarketMode;
+  continent?: Continent | null;
   startingCash: number;
   totalRounds: number;
   avatar: AvatarConfig | null;
 }): { room: MultiplayerRoom; player: MultiplayerPlayer } {
   const code = generateRoomCode();
   const gameSeed = seedFromCode(code);
-  const stockList = getStocksByMode(opts.marketMode);
+  const stockList = getStocksByMode(opts.marketMode, opts.continent ?? null);
   const prices = generateInitialPrices(gameSeed, stockList);
   const hostId = randomUUID();
 
@@ -147,6 +149,7 @@ export function createRoom(opts: {
     pendingJoins: new Map(),
     status: "lobby",
     marketMode: opts.marketMode,
+    continent: opts.continent ?? null,
     startingCash: opts.startingCash,
     totalRounds: opts.totalRounds,
     currentRound: 0,
@@ -422,6 +425,7 @@ export interface RoomPublicState {
   hostId: string;
   status: RoomStatus;
   marketMode: MarketMode;
+  continent: Continent | null;
   startingCash: number;
   currentRound: number;
   totalRounds: number;
@@ -458,6 +462,7 @@ export function buildRoomPublicState(room: MultiplayerRoom): RoomPublicState {
     hostId: room.hostId,
     status: room.status,
     marketMode: room.marketMode,
+    continent: room.continent,
     startingCash: room.startingCash,
     currentRound: room.currentRound,
     totalRounds: room.totalRounds,
@@ -574,6 +579,7 @@ export interface RoomSnapshot {
   hostId: string;
   status: RoomStatus;
   marketMode: MarketMode;
+  continent?: Continent | null;
   startingCash: number;
   totalRounds: number;
   currentRound: number;
@@ -604,6 +610,7 @@ export function exportRoomSnapshot(room: MultiplayerRoom): RoomSnapshot {
       hostId: room.hostId,
       status: room.status,
       marketMode: room.marketMode,
+      continent: room.continent,
       startingCash: room.startingCash,
       totalRounds: room.totalRounds,
       currentRound: room.currentRound,
@@ -652,6 +659,7 @@ export function importRoomSnapshot(snapshot: RoomSnapshot): MultiplayerRoom {
     pendingJoins: new Map(),
     status: snapshot.status,
     marketMode: snapshot.marketMode,
+    continent: snapshot.continent ?? null,
     startingCash: snapshot.startingCash,
     totalRounds: snapshot.totalRounds,
     currentRound: snapshot.currentRound,

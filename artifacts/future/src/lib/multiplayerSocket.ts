@@ -60,11 +60,16 @@ export interface LeaderboardEntry {
   avatar?: AvatarConfig | null;
 }
 
+export type Continent =
+  | "Africa" | "Asia" | "Europe"
+  | "North America" | "South America" | "Oceania";
+
 export interface RoomState {
   code: string;
   hostId: string;
   status: RoomStatus;
   marketMode: MarketMode;
+  continent: Continent | null;
   startingCash: number;
   currentRound: number;
   totalRounds: number;
@@ -109,6 +114,7 @@ export interface MultiplayerIntent {
   mode: "host" | "join" | "resume";
   playerName: string;
   marketMode?: MarketMode;
+  continent?: Continent | null;
   startingCash?: number;
   totalRounds?: number;
   joinCode?: string;
@@ -213,6 +219,7 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
           type: "host_room",
           playerName: intent.playerName,
           marketMode: intent.marketMode ?? "stocks",
+          continent: intent.continent ?? null,
           startingCash: intent.startingCash ?? 10000,
           totalRounds: intent.totalRounds ?? 10,
           avatar: avatarPayload,

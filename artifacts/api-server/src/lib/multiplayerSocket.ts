@@ -18,6 +18,7 @@ import {
   type MarketMode,
   type AvatarConfig,
 } from "./multiplayer.js";
+import { isContinent } from "./stocks.js";
 import { createMultiplayerSave, consumeResumeToken } from "./saves.js";
 
 interface ClientMessage {
@@ -104,6 +105,8 @@ function handleHostRoom(socket: WebSocket, msg: ClientMessage): void {
     return;
   }
   const marketMode = sanitizeMarketMode(msg["marketMode"]);
+  const rawContinent = msg["continent"];
+  const continent = isContinent(rawContinent) ? rawContinent : null;
   const startingCash = sanitizeStartingCash(msg["startingCash"]);
   const totalRounds = sanitizeRounds(msg["totalRounds"]);
 
@@ -111,6 +114,7 @@ function handleHostRoom(socket: WebSocket, msg: ClientMessage): void {
     hostName: playerName,
     hostSocket: socket,
     marketMode,
+    continent,
     startingCash,
     totalRounds,
     avatar: sanitizeAvatar(msg["avatar"]),

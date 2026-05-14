@@ -7,13 +7,25 @@ import { loadNickname } from "@/lib/nickname";
 import {
   ArrowRight, Wallet, User, TrendingUp, Loader2, Bitcoin,
   BarChart2, Layers, ArrowLeft, Sparkles, BookOpen,
-  Users, UserCircle, Crown, KeyRound, AlertTriangle,
+  Users, UserCircle, Crown, KeyRound, AlertTriangle, Globe2,
 } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 
 type MarketMode = "stocks" | "crypto" | "mixed";
 type GameEra = "classic" | "future" | "present";
 type PlayMode = "solo" | "multiplayer";
+type Continent =
+  | "Africa" | "Asia" | "Europe"
+  | "North America" | "South America" | "Oceania";
+
+const CONTINENTS: { id: Continent; label: string; flag: string }[] = [
+  { id: "Africa",        label: "Africa",        flag: "🌍" },
+  { id: "Asia",          label: "Asia",          flag: "🌏" },
+  { id: "Europe",        label: "Europe",        flag: "🇪🇺" },
+  { id: "North America", label: "N. America",    flag: "🌎" },
+  { id: "South America", label: "S. America",    flag: "🌎" },
+  { id: "Oceania",       label: "Oceania",       flag: "🇦🇺" },
+];
 
 const QUICK_AMOUNTS = [1000, 5000, 10000, 25000, 100000];
 
@@ -39,6 +51,7 @@ export function SetupPage() {
   const [name, setName] = useState(() => loadNickname());
   const [cashInput, setCashInput] = useState("10000");
   const [mode, setMode] = useState<MarketMode>("stocks");
+  const [continent, setContinent] = useState<Continent | null>(null);
   const [playMode, setPlayMode] = useState<PlayMode>("solo");
   const [joinAction, setJoinAction] = useState<"choose" | "join">("choose");
   const [joinCode, setJoinCode] = useState("");
@@ -59,7 +72,7 @@ export function SetupPage() {
       const res = await fetch("/api/game/new", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerName: name.trim(), startingCash: parsedCash, marketMode: mode, gameEra: era }),
+        body: JSON.stringify({ playerName: name.trim(), startingCash: parsedCash, marketMode: mode, continent, gameEra: era }),
       });
       if (!res.ok) throw new Error("Server error");
       const data = await res.json();
@@ -79,6 +92,7 @@ export function SetupPage() {
       mode: "host",
       playerName: name.trim(),
       marketMode: mode,
+      continent,
       startingCash: parsedCash,
     });
     setLocation("/multiplayer/avatar");
@@ -226,6 +240,48 @@ export function SetupPage() {
                   {m.icon}
                   <span className="text-sm font-semibold">{m.label}</span>
                   <span className="text-[10px] opacity-70 font-normal">{m.sub}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Continent → World Currencies */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Globe2 className="w-4 h-4" /> World Currencies
+              <span className="text-[10px] uppercase tracking-wide opacity-50">Optional</span>
+            </label>
+            <p className="text-xs text-muted-foreground/70 -mt-1">
+              Pick a continent to add its currencies to your tradable market.
+            </p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={() => setContinent(null)}
+                className={cn(
+                  "flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all",
+                  continent === null
+                    ? "border-white/30 bg-white/10 text-white"
+                    : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10",
+                )}
+              >
+                <span className="text-base leading-none">∅</span>
+                <span>None</span>
+              </button>
+              {CONTINENTS.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setContinent(c.id)}
+                  className={cn(
+                    "flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border text-xs font-semibold transition-all",
+                    continent === c.id
+                      ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.25)]"
+                      : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10",
+                  )}
+                >
+                  <span className="text-base leading-none">{c.flag}</span>
+                  <span>{c.label}</span>
                 </button>
               ))}
             </div>

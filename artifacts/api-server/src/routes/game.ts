@@ -14,7 +14,7 @@ import {
   getNextSentiment,
   type MarketSentiment,
 } from "../lib/gameEngine.js";
-import { STOCKS, getStocksByMode } from "../lib/stocks.js";
+import { STOCKS, getStocksByMode, isContinent } from "../lib/stocks.js";
 import { getHistoricalEvent, FUTURE_BRUTAL_DATES, PRESENT_BRUTAL_DATES } from "../lib/historicalEvents.js";
 
 type GameEra = "classic" | "future" | "present";
@@ -124,6 +124,8 @@ router.post("/game/new", async (req, res) => {
   const rawMode = req.body?.marketMode;
   const marketMode: "stocks" | "crypto" | "mixed" =
     rawMode === "crypto" || rawMode === "mixed" ? rawMode : "stocks";
+  const rawContinent = req.body?.continent;
+  const continent = isContinent(rawContinent) ? rawContinent : null;
   const rawEra = req.body?.gameEra;
   const gameEra: GameEra = rawEra === "future" ? "future" : rawEra === "present" ? "present" : "classic";
   if (startingCash < 100 || startingCash > 10_000_000) {
@@ -134,7 +136,7 @@ router.post("/game/new", async (req, res) => {
   const sessionId = randomUUID();
   const gameSeed = getGameSeed(sessionId);
   const initialDate = formatGameDate(0, ERA_START[gameEra]);
-  const filteredStocks = getStocksByMode(marketMode);
+  const filteredStocks = getStocksByMode(marketMode, continent);
   const initialPrices = generateInitialPrices(gameSeed, filteredStocks);
   const initialSentiment: MarketSentiment = "neutral";
   const baseLabel = gameEra === "future"
