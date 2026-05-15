@@ -1,12 +1,21 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { loadStoredAvatar, type AvatarConfig } from "./avatar";
 
+export interface ChatAttachmentWire {
+  kind: "image" | "file";
+  name: string;
+  mime: string;
+  size: number;
+  dataUrl: string;
+}
+
 export interface ChatMessageWire {
   id: string;
   from: string;
   name: string;
   text: string;
   ts: number;
+  attachment?: ChatAttachmentWire;
 }
 
 export interface ReactionWire {
@@ -164,7 +173,7 @@ interface UseMultiplayerRoomReturn {
   startGame: () => void;
   nextRound: () => void;
   trade: (ticker: string, action: "buy" | "sell", shares: number) => void;
-  sendChat: (text: string) => void;
+  sendChat: (text: string, attachment?: ChatAttachmentWire) => void;
   sendReaction: (kind: string) => void;
   saveSession: () => Promise<string>;
   leave: () => void;
@@ -292,8 +301,30 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
         }
         case "chat_message": {
           const m = msg as unknown as ChatMessageWire;
-          if (m.id && m.text) {
-            setChatMessages((prev) => [...prev.slice(-99), m]);
+          if (m.id && (m.text || m.attachment)) {
+            setChatMessages((prev) => {
+              const next = [...prev.slice(-99), m];
+              // Bound attachment memory: keep heavy `dataUrl` only on the most
+              // recent N attachment messages. Older ones are kept as headers
+              // (name/size/mime) so the chat history still shows the upload.
+              const KEEP_FULL = 6;
+              let attachmentsLeft = KEEP_FULL;
+              for (let i = next.length - 1; i >= 0; i--) {
+                const item = next[i];
+                if (!item.attachment) continue;
+                if (attachmentsLeft > 0) {
+                  attachmentsLeft--;
+                  continue;
+                }
+                if (item.attachment.dataUrl) {
+                  next[i] = {
+                    ...item,
+                    attachment: { ...item.attachment, dataUrl: "" },
+                  };
+                }
+              }
+              return next;
+            });
           }
           break;
         }
@@ -355,7 +386,8 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
     startGame: () => sendMessage("start_game"),
     nextRound: () => sendMessage("next_round"),
     trade: (ticker, action, shares) => sendMessage("trade", { ticker, action, shares }),
-    sendChat: (text: string) => sendMessage("chat_message", { text }),
+    sendChat: (text: string, attachment?: ChatAttachmentWire) =>
+      sendMessage("chat_message", attachment ? { text, attachment } : { text }),
     sendReaction: (kind: string) => sendMessage("reaction", { kind }),
     saveSession: () =>
       new Promise<string>((resolve, reject) => {

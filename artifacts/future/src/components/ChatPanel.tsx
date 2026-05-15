@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, Send, X } from "lucide-react";
+import { MessageCircle, Send, X, Paperclip, FileText, Loader2, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+export interface ChatAttachment {
+  kind: "image" | "file";
+  name: string;
+  mime: string;
+  size: number;
+  dataUrl: string;
+}
 
 export interface ChatMessage {
   id: string;
@@ -9,6 +17,7 @@ export interface ChatMessage {
   name: string;
   text: string;
   ts: number;
+  attachment?: ChatAttachment;
 }
 
 export interface ReactionKind {
@@ -29,11 +38,34 @@ export const REACTIONS: ReactionKind[] = [
 interface Props {
   messages: ChatMessage[];
   myPlayerId: string | null;
-  onSend: (text: string) => void;
+  onSend: (text: string, attachment?: ChatAttachment) => void;
   onReact: (kind: string) => void;
   open: boolean;
   onToggle: () => void;
   unread: number;
+}
+
+// Allowed mime types and per-file size cap (binary). Server enforces too.
+const ALLOWED_MIMES = [
+  "image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif",
+  "application/pdf", "text/plain", "text/markdown",
+];
+const ACCEPT_ATTR = ".png,.jpg,.jpeg,.webp,.gif,.pdf,.txt,.md,image/*";
+const MAX_FILE_BYTES = 300 * 1024;
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error ?? new Error("read failed"));
+    reader.readAsDataURL(file);
+  });
 }
 
 /** Side chat panel + quick reaction buttons. */
@@ -41,6 +73,11 @@ export function ChatPanel({
   messages, myPlayerId, onSend, onReact, open, onToggle, unread,
 }: Props) {
   const [draft, setDraft] = useState("");
+  const [pending, setPending] = useState<ChatAttachment | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,9 +88,40 @@ export function ChatPanel({
 
   const submit = () => {
     const text = draft.trim().slice(0, 200);
-    if (!text) return;
-    onSend(text);
+    if (!text && !pending) return;
+    onSend(text, pending ?? undefined);
     setDraft("");
+    setPending(null);
+    setUploadError(null);
+  };
+
+  const onPickFile = async (file: File | undefined) => {
+    setUploadError(null);
+    if (!file) return;
+    if (!ALLOWED_MIMES.includes(file.type)) {
+      setUploadError("Only images, PDFs, and text files are allowed.");
+      return;
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      setUploadError(`Max file size is ${formatBytes(MAX_FILE_BYTES)}.`);
+      return;
+    }
+    setUploading(true);
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setPending({
+        kind: file.type.startsWith("image/") ? "image" : "file",
+        name: file.name.slice(0, 80),
+        mime: file.type,
+        size: file.size,
+        dataUrl,
+      });
+    } catch {
+      setUploadError("Could not read that file.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -130,16 +198,26 @@ export function ChatPanel({
                       >
                         {mine ? "You" : m.name}
                       </div>
-                      <div
-                        className={cn(
-                          "px-3 py-1.5 rounded-2xl text-sm leading-snug break-words",
-                          mine
-                            ? "bg-amber-500/20 border border-amber-400/30 text-amber-50 rounded-tr-sm"
-                            : "bg-white/5 border border-white/10 text-foreground rounded-tl-sm"
-                        )}
-                      >
-                        {m.text}
-                      </div>
+                      {m.attachment && (
+                        <AttachmentBubble
+                          attachment={m.attachment}
+                          mine={mine}
+                          onPreviewImage={(url) => setPreviewUrl(url)}
+                        />
+                      )}
+                      {m.text && (
+                        <div
+                          className={cn(
+                            "px-3 py-1.5 rounded-2xl text-sm leading-snug break-words",
+                            mine
+                              ? "bg-amber-500/20 border border-amber-400/30 text-amber-50 rounded-tr-sm"
+                              : "bg-white/5 border border-white/10 text-foreground rounded-tl-sm",
+                            m.attachment ? "mt-1" : "",
+                          )}
+                        >
+                          {m.text}
+                        </div>
+                      )}
                     </motion.div>
                   );
                 })
@@ -166,25 +244,87 @@ export function ChatPanel({
               </div>
             </div>
 
+            {/* Pending attachment preview */}
+            {(pending || uploadError || uploading) && (
+              <div className="px-3 pt-2 bg-black/20 border-t border-white/10">
+                {uploading && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Reading file…
+                  </div>
+                )}
+                {uploadError && (
+                  <div className="text-[11px] text-red-400 py-1">{uploadError}</div>
+                )}
+                {pending && (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/10">
+                    {pending.kind === "image" ? (
+                      <img
+                        src={pending.dataUrl}
+                        alt={pending.name}
+                        className="w-10 h-10 object-cover rounded"
+                      />
+                    ) : (
+                      <FileText className="w-8 h-8 text-amber-400 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-semibold truncate">{pending.name}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {formatBytes(pending.size)}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setPending(null)}
+                      className="text-white/40 hover:text-red-400 transition-colors"
+                      aria-label="Remove attachment"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Composer */}
             <form
               onSubmit={(e) => { e.preventDefault(); submit(); }}
               className="p-3 border-t border-white/10 bg-black/30 flex gap-2"
             >
               <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPT_ATTR}
+                className="hidden"
+                onChange={(e) => onPickFile(e.target.files?.[0])}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || !!pending}
+                className={cn(
+                  "px-2 rounded-xl flex items-center justify-center transition-all border",
+                  pending || uploading
+                    ? "bg-white/5 text-muted-foreground/40 border-white/5 cursor-not-allowed"
+                    : "bg-white/5 text-amber-300 border-white/10 hover:bg-amber-400/20 hover:border-amber-400/40"
+                )}
+                title="Attach image, PDF, or text strategy"
+                aria-label="Attach file"
+              >
+                <Paperclip className="w-4 h-4" />
+              </button>
+              <input
                 type="text"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 maxLength={200}
-                placeholder="Send a message…"
+                placeholder={pending ? "Add a caption…" : "Send a message…"}
                 className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-amber-400/50 focus:bg-white/10 transition-all"
               />
               <button
                 type="submit"
-                disabled={!draft.trim()}
+                disabled={!draft.trim() && !pending}
                 className={cn(
                   "px-3 rounded-xl flex items-center justify-center transition-all",
-                  draft.trim()
+                  draft.trim() || pending
                     ? "bg-amber-500 text-black hover:bg-amber-400"
                     : "bg-white/5 text-muted-foreground/40 cursor-not-allowed"
                 )}
@@ -196,7 +336,97 @@ export function ChatPanel({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Image lightbox */}
+      <AnimatePresence>
+        {previewUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setPreviewUrl(null)}
+            className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 cursor-zoom-out"
+          >
+            <motion.img
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              src={previewUrl}
+              alt="Preview"
+              className="max-w-full max-h-full rounded-xl shadow-2xl"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
+  );
+}
+
+function AttachmentBubble({
+  attachment, mine, onPreviewImage,
+}: {
+  attachment: ChatAttachment;
+  mine: boolean;
+  onPreviewImage: (url: string) => void;
+}) {
+  // Older messages have their dataUrl stripped to bound client memory; render
+  // a placeholder card in that case so the upload still appears in history.
+  const expired = !attachment.dataUrl;
+
+  if (attachment.kind === "image" && !expired) {
+    return (
+      <button
+        type="button"
+        onClick={() => onPreviewImage(attachment.dataUrl)}
+        className={cn(
+          "block max-w-[220px] rounded-2xl overflow-hidden border transition-transform hover:scale-[1.02]",
+          mine
+            ? "border-amber-400/30 rounded-tr-sm"
+            : "border-white/10 rounded-tl-sm"
+        )}
+        title={`${attachment.name} (${formatBytes(attachment.size)})`}
+      >
+        <img
+          src={attachment.dataUrl}
+          alt={attachment.name}
+          className="block w-full h-auto"
+          loading="lazy"
+        />
+      </button>
+    );
+  }
+
+  const Inner = (
+    <>
+      {attachment.mime.startsWith("image/")
+        ? <ImageIcon className="w-5 h-5 text-amber-300 shrink-0" />
+        : <FileText className="w-5 h-5 text-amber-300 shrink-0" />}
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-semibold truncate">{attachment.name}</div>
+        <div className="text-[10px] text-muted-foreground">
+          {formatBytes(attachment.size)}
+          {expired ? " · expired from history" : " · tap to download"}
+        </div>
+      </div>
+    </>
+  );
+
+  const className = cn(
+    "flex items-center gap-2 px-3 py-2 rounded-2xl text-sm border max-w-[260px] transition-colors",
+    mine
+      ? "bg-amber-500/15 border-amber-400/30 text-amber-50 rounded-tr-sm"
+      : "bg-white/5 border-white/10 text-foreground rounded-tl-sm",
+    expired ? "opacity-60" : "hover:bg-white/10",
+  );
+
+  if (expired) {
+    return <div className={className}>{Inner}</div>;
+  }
+
+  return (
+    <a href={attachment.dataUrl} download={attachment.name} className={className}>
+      {Inner}
+    </a>
   );
 }
 

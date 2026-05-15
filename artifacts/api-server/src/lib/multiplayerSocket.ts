@@ -304,14 +304,19 @@ const REACTION_KINDS = new Set(["rocket", "moneybag", "chart", "skull", "fire", 
 // Per-socket simple token-bucket-style minimum-interval rate limit.
 interface RateState { lastChatMs: number; lastReactionMs: number; }
 const rateBySocket = new WeakMap<WebSocket, RateState>();
-const MIN_CHAT_MS = 600;     // ≈ 100/min ceiling per player
-const MIN_REACTION_MS = 250; // ≈ 240/min per player
+const MIN_CHAT_MS = 600;            // ≈ 100/min ceiling per player
+const MIN_CHAT_ATTACHMENT_MS = 4000; // attachments are ~300 KB → 15/min
+const MIN_REACTION_MS = 250;         // ≈ 240/min per player
 
-function checkRate(sock: WebSocket, kind: "chat" | "reaction"): boolean {
+function checkRate(
+  sock: WebSocket,
+  kind: "chat" | "chat_attachment" | "reaction",
+): boolean {
   const now = Date.now();
   const state = rateBySocket.get(sock) ?? { lastChatMs: 0, lastReactionMs: 0 };
-  if (kind === "chat") {
-    if (now - state.lastChatMs < MIN_CHAT_MS) return false;
+  if (kind === "chat" || kind === "chat_attachment") {
+    const min = kind === "chat_attachment" ? MIN_CHAT_ATTACHMENT_MS : MIN_CHAT_MS;
+    if (now - state.lastChatMs < min) return false;
     state.lastChatMs = now;
   } else {
     if (now - state.lastReactionMs < MIN_REACTION_MS) return false;
@@ -321,13 +326,52 @@ function checkRate(sock: WebSocket, kind: "chat" | "reaction"): boolean {
   return true;
 }
 
+// Max base64 length for an attachment payload (~300 KB binary). Keeps WS frames
+// small enough to fan out cheaply while still allowing readable screenshots.
+const MAX_ATTACHMENT_B64 = 420_000;
+const ALLOWED_ATTACHMENT_MIME = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "text/plain",
+  "text/markdown",
+]);
+
+interface SanitizedAttachment {
+  kind: "image" | "file";
+  name: string;
+  mime: string;
+  size: number;
+  dataUrl: string;
+}
+
+function sanitizeAttachment(raw: unknown): SanitizedAttachment | null {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  const mime = typeof obj["mime"] === "string" ? obj["mime"] : "";
+  const dataUrl = typeof obj["dataUrl"] === "string" ? obj["dataUrl"] : "";
+  const name = typeof obj["name"] === "string" ? obj["name"].slice(0, 80) : "file";
+  const size = typeof obj["size"] === "number" ? obj["size"] : 0;
+  if (!ALLOWED_ATTACHMENT_MIME.has(mime)) return null;
+  if (!dataUrl.startsWith(`data:${mime};base64,`)) return null;
+  if (dataUrl.length > MAX_ATTACHMENT_B64) return null;
+  const kind = mime.startsWith("image/") ? "image" : "file";
+  return { kind, name: name || "file", mime, size, dataUrl };
+}
+
 function handleChatMessage(socket: WebSocket, msg: ClientMessage): void {
   const ref = getRoomBySocket(socket);
   if (!ref) return;
-  if (!checkRate(socket, "chat")) return;
   const raw = typeof msg["text"] === "string" ? msg["text"] : "";
   const text = raw.trim().slice(0, 200);
-  if (!text) return;
+  const attachment = sanitizeAttachment(msg["attachment"]);
+  if (!text && !attachment) return;
+  // Throttle attachment-bearing messages more aggressively (large payloads
+  // multiply by room size on fanout).
+  if (!checkRate(socket, attachment ? "chat_attachment" : "chat")) return;
   const player = ref.room.players.get(ref.playerId);
   if (!player) return;
 
@@ -337,6 +381,7 @@ function handleChatMessage(socket: WebSocket, msg: ClientMessage): void {
     name: player.name,
     text,
     ts: Date.now(),
+    ...(attachment ? { attachment } : {}),
   };
 
   for (const p of ref.room.players.values()) {
@@ -369,7 +414,14 @@ function handleReaction(socket: WebSocket, msg: ClientMessage): void {
 }
 
 export function attachMultiplayerSocket(server: HttpServer): WebSocketServer {
-  const wss = new WebSocketServer({ server, path: "/api/multiplayer/ws" });
+  // Cap incoming WS frames so oversized payloads are rejected at the transport
+  // layer (before JSON.parse), bounding worst-case memory/CPU per message. The
+  // largest legitimate frame is a chat attachment (≈420 KB base64 + envelope).
+  const wss = new WebSocketServer({
+    server,
+    path: "/api/multiplayer/ws",
+    maxPayload: 512 * 1024, // 512 KB
+  });
 
   wss.on("connection", (socket) => {
     socket.on("message", (raw) => {

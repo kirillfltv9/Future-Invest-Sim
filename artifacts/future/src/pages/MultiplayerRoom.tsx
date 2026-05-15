@@ -492,7 +492,7 @@ function PlayingView({
   consumeReaction: (id: string) => void;
   onTrade: (ticker: string, action: "buy" | "sell", shares: number) => void;
   onNextRound: () => void;
-  onSendChat: (text: string) => void;
+  onSendChat: (text: string, attachment?: import("@/lib/multiplayerSocket").ChatAttachmentWire) => void;
   onReact: (kind: string) => void;
   onSave: () => void;
   onLeave: () => void;
