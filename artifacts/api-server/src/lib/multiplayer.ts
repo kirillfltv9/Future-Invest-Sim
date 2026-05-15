@@ -9,7 +9,7 @@ import {
   formatGameDate,
   type MarketSentiment,
 } from "./gameEngine.js";
-import { getStocksByMode, type Continent } from "./stocks.js";
+import { getStocksByMode, rescaleToCurrency, type Continent } from "./stocks.js";
 
 export type MarketMode = "stocks" | "crypto" | "mixed";
 export type RoomStatus = "lobby" | "playing" | "finished";
@@ -59,6 +59,7 @@ export interface MultiplayerRoom {
   status: RoomStatus;
   marketMode: MarketMode;
   continent: Continent | null;
+  baseCurrency: string;
   startingCash: number;
   totalRounds: number;
   currentRound: number;
@@ -119,6 +120,7 @@ export function createRoom(opts: {
   hostSocket: WebSocket;
   marketMode: MarketMode;
   continent?: Continent | null;
+  baseCurrency?: string;
   startingCash: number;
   totalRounds: number;
   avatar: AvatarConfig | null;
@@ -126,7 +128,9 @@ export function createRoom(opts: {
   const code = generateRoomCode();
   const gameSeed = seedFromCode(code);
   const stockList = getStocksByMode(opts.marketMode, opts.continent ?? null);
-  const prices = generateInitialPrices(gameSeed, stockList);
+  const usdPrices = generateInitialPrices(gameSeed, stockList);
+  const baseCurrency = opts.baseCurrency ?? "USD";
+  const { prices, cash: startingCash } = rescaleToCurrency(usdPrices, opts.startingCash, baseCurrency);
   const hostId = randomUUID();
 
   const host: MultiplayerPlayer = {
@@ -134,9 +138,9 @@ export function createRoom(opts: {
     name: opts.hostName,
     socket: opts.hostSocket,
     isHost: true,
-    cash: opts.startingCash,
+    cash: startingCash,
     holdings: [],
-    startingCash: opts.startingCash,
+    startingCash: startingCash,
     joinedAtRound: 0,
     connected: true,
     avatar: opts.avatar,
@@ -150,7 +154,8 @@ export function createRoom(opts: {
     status: "lobby",
     marketMode: opts.marketMode,
     continent: opts.continent ?? null,
-    startingCash: opts.startingCash,
+    baseCurrency,
+    startingCash: startingCash,
     totalRounds: opts.totalRounds,
     currentRound: 0,
     currentDay: 0,
@@ -426,6 +431,7 @@ export interface RoomPublicState {
   status: RoomStatus;
   marketMode: MarketMode;
   continent: Continent | null;
+  baseCurrency: string;
   startingCash: number;
   currentRound: number;
   totalRounds: number;
@@ -463,6 +469,7 @@ export function buildRoomPublicState(room: MultiplayerRoom): RoomPublicState {
     status: room.status,
     marketMode: room.marketMode,
     continent: room.continent,
+    baseCurrency: room.baseCurrency,
     startingCash: room.startingCash,
     currentRound: room.currentRound,
     totalRounds: room.totalRounds,
@@ -580,6 +587,7 @@ export interface RoomSnapshot {
   status: RoomStatus;
   marketMode: MarketMode;
   continent?: Continent | null;
+  baseCurrency?: string;
   startingCash: number;
   totalRounds: number;
   currentRound: number;
@@ -611,6 +619,7 @@ export function exportRoomSnapshot(room: MultiplayerRoom): RoomSnapshot {
       status: room.status,
       marketMode: room.marketMode,
       continent: room.continent,
+      baseCurrency: room.baseCurrency,
       startingCash: room.startingCash,
       totalRounds: room.totalRounds,
       currentRound: room.currentRound,
@@ -660,6 +669,7 @@ export function importRoomSnapshot(snapshot: RoomSnapshot): MultiplayerRoom {
     status: snapshot.status,
     marketMode: snapshot.marketMode,
     continent: snapshot.continent ?? null,
+    baseCurrency: snapshot.baseCurrency ?? "USD",
     startingCash: snapshot.startingCash,
     totalRounds: snapshot.totalRounds,
     currentRound: snapshot.currentRound,

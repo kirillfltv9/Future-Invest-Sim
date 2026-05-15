@@ -14,7 +14,7 @@ import {
   getNextSentiment,
   type MarketSentiment,
 } from "../lib/gameEngine.js";
-import { STOCKS, getStocksByMode, isContinent } from "../lib/stocks.js";
+import { STOCKS, getStocksByMode, isContinent, getCurrenciesForContinent, rescaleToCurrency, type Continent } from "../lib/stocks.js";
 import { getHistoricalEvent, FUTURE_BRUTAL_DATES, PRESENT_BRUTAL_DATES } from "../lib/historicalEvents.js";
 
 type GameEra = "classic" | "future" | "present";
@@ -91,6 +91,7 @@ function buildGameResponse(session: typeof gameSessions.$inferSelect) {
     marketSentiment: session.marketSentiment as MarketSentiment,
     newsEvents: session.newsEvents as string[],
     marketMode: (session.marketMode ?? "stocks") as "stocks" | "crypto" | "mixed",
+    baseCurrency: (session as { baseCurrency?: string }).baseCurrency ?? "USD",
     gameEra: era,
     gameWon,
     progressDays,
@@ -100,6 +101,15 @@ function buildGameResponse(session: typeof gameSessions.$inferSelect) {
     daysRemaining: Math.max(0, totalGameDays - progressDays),
   };
 }
+
+router.get("/currencies", (req, res) => {
+  const c = req.query?.continent;
+  if (!isContinent(c)) {
+    res.status(400).json({ error: "Invalid or missing continent" });
+    return;
+  }
+  res.json(getCurrenciesForContinent(c as Continent));
+});
 
 router.get("/stocks", (_req, res) => {
   const stocks = STOCKS.map(({ ticker, name, sector, description, volatility, dividendYield }) => ({
@@ -137,7 +147,16 @@ router.post("/game/new", async (req, res) => {
   const gameSeed = getGameSeed(sessionId);
   const initialDate = formatGameDate(0, ERA_START[gameEra]);
   const filteredStocks = getStocksByMode(marketMode, continent);
-  const initialPrices = generateInitialPrices(gameSeed, filteredStocks);
+  const initialPricesUsd = generateInitialPrices(gameSeed, filteredStocks);
+
+  // Optional base currency: rescale starting cash + all prices into that currency.
+  const rawBaseCurrency = req.body?.baseCurrency;
+  const baseCurrency: string = typeof rawBaseCurrency === "string"
+    && STOCKS.some((s) => s.ticker === rawBaseCurrency && s.assetType === "currency")
+    ? rawBaseCurrency
+    : "USD";
+  const { prices: initialPrices, cash: rescaledCash } =
+    rescaleToCurrency(initialPricesUsd, startingCash, baseCurrency);
   const initialSentiment: MarketSentiment = "neutral";
   const baseLabel = gameEra === "future"
     ? ERA_LABEL.future
@@ -148,15 +167,15 @@ router.post("/game/new", async (req, res) => {
     : ERA_LABEL.classic;
   const initialNews = [baseLabel];
 
-  const initialSnapshot = computePortfolioSnapshot(0, initialDate, startingCash, [], initialPrices);
+  const initialSnapshot = computePortfolioSnapshot(0, initialDate, rescaledCash, [], initialPrices);
 
   await db.insert(gameSessions).values({
     sessionId,
     playerName,
     currentDay: 0,
     currentDate: initialDate,
-    startingCash,
-    cashBalance: startingCash,
+    startingCash: rescaledCash,
+    cashBalance: rescaledCash,
     holdings: [],
     stockPrices: initialPrices,
     portfolioHistory: [initialSnapshot],
@@ -164,9 +183,10 @@ router.post("/game/new", async (req, res) => {
     marketSentiment: initialSentiment,
     newsEvents: initialNews,
     marketMode,
+    baseCurrency,
     gameEra,
     level: 1,
-    levelStartValue: startingCash,
+    levelStartValue: rescaledCash,
   });
 
   const session = await db.query.gameSessions.findFirst({

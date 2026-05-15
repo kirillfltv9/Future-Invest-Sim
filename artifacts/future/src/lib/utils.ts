@@ -5,13 +5,31 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+let _activeCurrency = "USD";
+
+export function setActiveCurrency(code: string | null | undefined): void {
+  _activeCurrency = (code && code.trim()) ? code.trim().toUpperCase() : "USD";
+}
+
+export function getActiveCurrency(): string {
+  return _activeCurrency;
+}
+
+export function formatCurrency(value: number, currency: string = _activeCurrency): string {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  } catch {
+    // Fallback for non-ISO codes (e.g. DRAM, DZDX, KID, CDFR) — show ticker prefix.
+    return `${currency} ${value.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  }
 }
 
 export function formatPercent(value: number): string {

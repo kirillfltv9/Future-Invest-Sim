@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { setSessionId, clearSessionId } from "@/lib/session";
@@ -9,7 +9,15 @@ import {
   BarChart2, Layers, ArrowLeft, Sparkles, BookOpen,
   Users, UserCircle, Crown, KeyRound, AlertTriangle, Globe2,
 } from "lucide-react";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, setActiveCurrency, cn } from "@/lib/utils";
+
+interface CurrencyOption {
+  ticker: string;
+  name: string;
+  country: string;
+  flag: string;
+  basePrice: number;
+}
 
 type MarketMode = "stocks" | "crypto" | "mixed";
 type GameEra = "classic" | "future" | "present";
@@ -52,6 +60,29 @@ export function SetupPage() {
   const [cashInput, setCashInput] = useState("10000");
   const [mode, setMode] = useState<MarketMode>("stocks");
   const [continent, setContinent] = useState<Continent | null>(null);
+  const [baseCurrency, setBaseCurrency] = useState<string>("USD");
+  const [currencyOptions, setCurrencyOptions] = useState<CurrencyOption[]>([]);
+  const [loadingCurrencies, setLoadingCurrencies] = useState(false);
+
+  useEffect(() => {
+    if (!continent) {
+      setCurrencyOptions([]);
+      setBaseCurrency("USD");
+      return;
+    }
+    let cancelled = false;
+    setLoadingCurrencies(true);
+    fetch(`/api/currencies?continent=${encodeURIComponent(continent)}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: CurrencyOption[]) => {
+        if (cancelled) return;
+        setCurrencyOptions(Array.isArray(data) ? data : []);
+        setBaseCurrency("USD");
+      })
+      .catch(() => { if (!cancelled) setCurrencyOptions([]); })
+      .finally(() => { if (!cancelled) setLoadingCurrencies(false); });
+    return () => { cancelled = true; };
+  }, [continent]);
   const [playMode, setPlayMode] = useState<PlayMode>("solo");
   const [joinAction, setJoinAction] = useState<"choose" | "join">("choose");
   const [joinCode, setJoinCode] = useState("");
@@ -72,11 +103,12 @@ export function SetupPage() {
       const res = await fetch("/api/game/new", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerName: name.trim(), startingCash: parsedCash, marketMode: mode, continent, gameEra: era }),
+        body: JSON.stringify({ playerName: name.trim(), startingCash: parsedCash, marketMode: mode, continent, baseCurrency, gameEra: era }),
       });
       if (!res.ok) throw new Error("Server error");
       const data = await res.json();
       if (data.sessionId) {
+        setActiveCurrency(data.baseCurrency ?? baseCurrency);
         setSessionId(data.sessionId);
         setLocation("/dashboard");
       }
@@ -93,6 +125,7 @@ export function SetupPage() {
       playerName: name.trim(),
       marketMode: mode,
       continent,
+      baseCurrency,
       startingCash: parsedCash,
     });
     setLocation("/multiplayer/avatar");
@@ -285,6 +318,72 @@ export function SetupPage() {
                 </button>
               ))}
             </div>
+
+            <AnimatePresence initial={false}>
+              {continent && (
+                <motion.div
+                  key={continent}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-2">
+                    <p className="text-xs text-muted-foreground/80 mb-2">
+                      Pick a country — your cash and all prices will be measured in that
+                      country&apos;s currency instead of dollars.
+                    </p>
+                    {loadingCurrencies ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground py-3">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Loading countries…
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
+                        <button
+                          type="button"
+                          onClick={() => setBaseCurrency("USD")}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-2 rounded-lg border text-left text-xs font-semibold transition-all",
+                            baseCurrency === "USD"
+                              ? "border-white/30 bg-white/10 text-white"
+                              : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10",
+                          )}
+                        >
+                          <span className="text-lg leading-none">💵</span>
+                          <span className="flex flex-col leading-tight">
+                            <span>US Dollar</span>
+                            <span className="text-[10px] opacity-60 font-normal">USD · default</span>
+                          </span>
+                        </button>
+                        {currencyOptions.map((cur) => (
+                          <button
+                            key={cur.ticker}
+                            type="button"
+                            onClick={() => setBaseCurrency(cur.ticker)}
+                            className={cn(
+                              "flex items-center gap-2 px-3 py-2 rounded-lg border text-left text-xs font-semibold transition-all",
+                              baseCurrency === cur.ticker
+                                ? "border-amber-400/60 bg-amber-500/15 text-amber-200 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
+                                : "bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10",
+                            )}
+                          >
+                            <span className="text-lg leading-none shrink-0">{cur.flag}</span>
+                            <span className="flex flex-col leading-tight min-w-0">
+                              <span className="truncate">{cur.country}</span>
+                              <span className="text-[10px] opacity-60 font-normal truncate">
+                                {cur.ticker} · {cur.name}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Trader Name + Solo/Multiplayer toggle */}

@@ -316,6 +316,94 @@ export function isContinent(value: unknown): value is Continent {
     || value === "North America" || value === "South America" || value === "Oceania";
 }
 
+// ─── Country / flag metadata for currencies ──────────────────────────────────
+// Maps each currency ticker → 2-letter ISO country code used to derive a flag
+// emoji. Most tickers' first 2 letters already match ISO-3166 alpha-2; this
+// table records overrides where they don't.
+const CURRENCY_ISO_OVERRIDE: Record<string, string> = {
+  DZDX: "DZ", XAF: "CM", XOF: "SN", AED: "AE", AFN: "AF", AMD: "AM", AZN: "AZ",
+  BDT: "BD", BHD: "BH", BND: "BN", BTN: "BT", CNY: "CN", DRAM: "AM", GEL: "GE",
+  HKD: "HK", IDR: "ID", ILS: "IL", INR: "IN", IQD: "IQ", IRR: "IR", JOD: "JO",
+  JPY: "JP", KGS: "KG", KHR: "KH", KPW: "KP", KRW: "KR", KWD: "KW", KZT: "KZ",
+  LAK: "LA", LBP: "LB", LKR: "LK", MMK: "MM", MNT: "MN", MOP: "MO", MVR: "MV",
+  MYR: "MY", NPR: "NP", OMR: "OM", PHP: "PH", PKR: "PK", QAR: "QA", SAR: "SA",
+  SGD: "SG", SYP: "SY", THB: "TH", TJS: "TJ", TMT: "TM", TRY: "TR", TWD: "TW",
+  UZS: "UZ", VND: "VN", YER: "YE",
+  ALL: "AL", BAM: "BA", BGN: "BG", BYN: "BY", CHF: "CH", CZK: "CZ", DKK: "DK",
+  EUR: "EU", GBP: "GB", GEL_EU: "GE", HRK: "HR", HUF: "HU", ISK: "IS", MDL: "MD",
+  MKD: "MK", NOK: "NO", PLN: "PL", RON: "RO", RSD: "RS", RUB: "RU", SEK: "SE",
+  UAH: "UA",
+  USD: "US", CAD: "CA", MXN: "MX", BSD: "BS", BBD: "BB", BZD: "BZ", CRC: "CR",
+  CUP: "CU", DOP: "DO", GTQ: "GT", HNL: "HN", HTG: "HT", JMD: "JM", NIO: "NI",
+  PAB: "PA", TTD: "TT", XCD: "AG", KYD: "KY",
+  ARS: "AR", BOB: "BO", BRL: "BR", CLP: "CL", COP: "CO", GYD: "GY", PEN: "PE",
+  PYG: "PY", SRD: "SR", UYU: "UY", VES: "VE",
+  AUD: "AU", FJD: "FJ", NZD: "NZ", PGK: "PG", SBD: "SB", TOP: "TO", VUV: "VU",
+  XPF: "PF",
+  AOA: "AO", BWP: "BW", BIF: "BI", CVE: "CV", CDF: "CD", DJF: "DJ", EGP: "EG",
+  ERN: "ER", ETB: "ET", GMD: "GM", GHS: "GH", GNF: "GN", KES: "KE", LSL: "LS",
+  LRD: "LR", LYD: "LY", MGA: "MG", MWK: "MW", MUR: "MU", MAD: "MA", MZN: "MZ",
+  NAD: "NA", NGN: "NG", RWF: "RW", STN: "ST", SCR: "SC", SLL: "SL", SOS: "SO",
+  ZAR: "ZA", SSP: "SS", SDG: "SD", SZL: "SZ", TZS: "TZ", TND: "TN", UGX: "UG",
+  ZMW: "ZM", ZWL: "ZW", KMF: "KM", CDFR: "CD",
+  WST: "WS", KID: "KI",
+};
+
+function isoToFlag(iso: string): string {
+  if (iso.length !== 2) return "🌐";
+  const base = 0x1f1e6 - "A".charCodeAt(0);
+  return String.fromCodePoint(base + iso.charCodeAt(0), base + iso.charCodeAt(1));
+}
+
+/**
+ * Returns the list of currencies for a continent enriched with a country name
+ * (parsed from the description) and a flag emoji.
+ */
+export function getCurrenciesForContinent(continent: Continent): Array<{
+  ticker: string;
+  name: string;
+  country: string;
+  flag: string;
+  basePrice: number;
+}> {
+  return STOCKS.filter((s) => s.assetType === "currency" && s.continent === continent).map((s) => {
+    const iso = CURRENCY_ISO_OVERRIDE[s.ticker] ?? s.ticker.slice(0, 2).toUpperCase();
+    const country = s.description?.replace(/^Currency of\s+/i, "").trim() || s.name;
+    return { ticker: s.ticker, name: s.name, country, flag: isoToFlag(iso), basePrice: s.basePrice };
+  });
+}
+
+/**
+ * USD per 1 unit of `currencyTicker`. Returns 1 for USD or unknown tickers.
+ */
+export function getCurrencyUsdRate(currencyTicker: string): number {
+  if (!currencyTicker || currencyTicker === "USD") return 1;
+  const def = STOCKS.find((s) => s.ticker === currencyTicker && s.assetType === "currency");
+  return def?.basePrice && def.basePrice > 0 ? def.basePrice : 1;
+}
+
+/**
+ * Re-denominates USD-quoted starting cash and stock prices into the chosen
+ * base currency by applying the FX rate (1 / USD-per-unit). All ratios are
+ * preserved so the simulation math is unchanged.
+ */
+export function rescaleToCurrency<T extends { price: number; open: number; high: number; low: number }>(
+  prices: T[],
+  cashUsd: number,
+  currencyTicker: string,
+): { prices: T[]; cash: number; rate: number } {
+  const rate = 1 / getCurrencyUsdRate(currencyTicker);
+  if (rate === 1) return { prices, cash: cashUsd, rate: 1 };
+  const rescaled = prices.map((p) => ({
+    ...p,
+    price: p.price * rate,
+    open: p.open * rate,
+    high: p.high * rate,
+    low: p.low * rate,
+  }));
+  return { prices: rescaled, cash: cashUsd * rate, rate };
+}
+
 // Fail-fast guard: tickers must be globally unique across all asset types.
 (() => {
   const seen = new Set<string>();

@@ -70,6 +70,7 @@ export interface RoomState {
   status: RoomStatus;
   marketMode: MarketMode;
   continent: Continent | null;
+  baseCurrency: string;
   startingCash: number;
   currentRound: number;
   totalRounds: number;
@@ -115,6 +116,7 @@ export interface MultiplayerIntent {
   playerName: string;
   marketMode?: MarketMode;
   continent?: Continent | null;
+  baseCurrency?: string;
   startingCash?: number;
   totalRounds?: number;
   joinCode?: string;
@@ -220,6 +222,7 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
           playerName: intent.playerName,
           marketMode: intent.marketMode ?? "stocks",
           continent: intent.continent ?? null,
+          baseCurrency: intent.baseCurrency ?? "USD",
           startingCash: intent.startingCash ?? 10000,
           totalRounds: intent.totalRounds ?? 10,
           avatar: avatarPayload,

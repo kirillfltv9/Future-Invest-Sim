@@ -9,7 +9,7 @@ import {
   getGetGameQueryKey
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { formatCurrency, formatPercent, getProfitLossColor, cn } from "@/lib/utils";
+import { formatCurrency, formatPercent, getProfitLossColor, setActiveCurrency, cn } from "@/lib/utils";
 import { LogOut, Calendar, TrendingUp, TrendingDown, Clock, Newspaper, Loader2, AlertCircle, RotateCcw, Trophy, Save } from "lucide-react";
 import { PortfolioChart } from "@/components/dashboard/PortfolioChart";
 import { HoldingsList } from "@/components/dashboard/HoldingsList";
@@ -87,6 +87,10 @@ export function Dashboard() {
   useEffect(() => {
     if (game?.gameWon === true) setShowWin(true);
   }, [game?.gameWon]);
+
+  // Apply game currency synchronously so the first render uses the right symbol
+  // (no flash of stale USD on resume or refresh).
+  setActiveCurrency((game as { baseCurrency?: string } | undefined)?.baseCurrency ?? "USD");
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {

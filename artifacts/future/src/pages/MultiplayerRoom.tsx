@@ -25,7 +25,7 @@ import { SaveCodeModal } from "@/components/SaveCodeModal";
 import { FinalStandings } from "@/components/FinalStandings";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { DEFAULT_AVATAR } from "@/lib/avatar";
-import { formatCurrency, cn } from "@/lib/utils";
+import { formatCurrency, setActiveCurrency, cn } from "@/lib/utils";
 import { StockTicker } from "@/components/StockTicker";
 import { MarketEventCard } from "@/components/MarketEventCard";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
@@ -47,6 +47,8 @@ import {
 export function MultiplayerRoom() {
   const [, setLocation] = useLocation();
   const mp = useMultiplayerRoom();
+  // Apply room currency synchronously so the very first render uses the right symbol.
+  setActiveCurrency(mp.room?.baseCurrency ?? "USD");
   const { data: stocks = [] } = useListStocks();
   const [copied, setCopied] = useState(false);
   const [collapsed, setCollapsed] = useState(false);

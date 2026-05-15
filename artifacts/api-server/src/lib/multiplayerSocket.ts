@@ -107,6 +107,10 @@ function handleHostRoom(socket: WebSocket, msg: ClientMessage): void {
   const marketMode = sanitizeMarketMode(msg["marketMode"]);
   const rawContinent = msg["continent"];
   const continent = isContinent(rawContinent) ? rawContinent : null;
+  const rawBaseCurrency = msg["baseCurrency"];
+  const baseCurrency = typeof rawBaseCurrency === "string" && /^[A-Z]{3,5}$/.test(rawBaseCurrency)
+    ? rawBaseCurrency
+    : "USD";
   const startingCash = sanitizeStartingCash(msg["startingCash"]);
   const totalRounds = sanitizeRounds(msg["totalRounds"]);
 
@@ -115,6 +119,7 @@ function handleHostRoom(socket: WebSocket, msg: ClientMessage): void {
     hostSocket: socket,
     marketMode,
     continent,
+    baseCurrency,
     startingCash,
     totalRounds,
     avatar: sanitizeAvatar(msg["avatar"]),

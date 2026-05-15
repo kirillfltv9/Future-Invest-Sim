@@ -16,6 +16,7 @@ export const gameSessions = pgTable("game_sessions", {
   marketSentiment: text("market_sentiment").notNull().default("neutral"),
   newsEvents: jsonb("news_events").notNull().$type<string[]>().default([]),
   marketMode: text("market_mode").notNull().default("stocks"),
+  baseCurrency: text("base_currency").notNull().default("USD"),
   gameEra: text("game_era").notNull().default("classic"),
   level: integer("level").notNull().default(1),
   levelStartValue: real("level_start_value").notNull().default(0),
