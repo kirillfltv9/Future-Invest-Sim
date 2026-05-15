@@ -51,7 +51,7 @@ const ALLOWED_MIMES = [
   "application/pdf", "text/plain", "text/markdown",
 ];
 const ACCEPT_ATTR = ".png,.jpg,.jpeg,.webp,.gif,.pdf,.txt,.md,image/*";
-const MAX_FILE_BYTES = 300 * 1024;
+const MAX_FILE_BYTES = 5000 * 1024;
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;

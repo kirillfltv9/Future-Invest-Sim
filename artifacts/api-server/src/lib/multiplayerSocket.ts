@@ -326,9 +326,9 @@ function checkRate(
   return true;
 }
 
-// Max base64 length for an attachment payload (~300 KB binary). Keeps WS frames
-// small enough to fan out cheaply while still allowing readable screenshots.
-const MAX_ATTACHMENT_B64 = 420_000;
+// Max base64 length for an attachment payload (~5000 KB binary). Base64 is
+// ~4/3 the size of the underlying bytes, so 5000 KB → ~6.83M chars.
+const MAX_ATTACHMENT_B64 = 6_900_000;
 const ALLOWED_ATTACHMENT_MIME = new Set([
   "image/png",
   "image/jpeg",
@@ -416,11 +416,12 @@ function handleReaction(socket: WebSocket, msg: ClientMessage): void {
 export function attachMultiplayerSocket(server: HttpServer): WebSocketServer {
   // Cap incoming WS frames so oversized payloads are rejected at the transport
   // layer (before JSON.parse), bounding worst-case memory/CPU per message. The
-  // largest legitimate frame is a chat attachment (≈420 KB base64 + envelope).
+  // largest legitimate frame is a chat attachment (≈5000 KB binary → ~6.83M
+  // chars base64 + JSON envelope).
   const wss = new WebSocketServer({
     server,
     path: "/api/multiplayer/ws",
-    maxPayload: 512 * 1024, // 512 KB
+    maxPayload: 8 * 1024 * 1024, // 8 MB
   });
 
   wss.on("connection", (socket) => {
