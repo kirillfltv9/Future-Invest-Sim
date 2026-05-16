@@ -338,6 +338,8 @@ const ALLOWED_ATTACHMENT_MIME = new Set([
   "application/pdf",
   "text/plain",
   "text/markdown",
+  "text/csv",
+  "application/json",
 ]);
 
 interface SanitizedAttachment {

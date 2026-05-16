@@ -45,12 +45,22 @@ interface Props {
   unread: number;
 }
 
-// Allowed mime types and per-file size cap (binary). Server enforces too.
-const ALLOWED_MIMES = [
-  "image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif",
-  "application/pdf", "text/plain", "text/markdown",
-];
-const ACCEPT_ATTR = ".png,.jpg,.jpeg,.webp,.gif,.pdf,.txt,.md,image/*";
+// Map of file extension → canonical mime type. Used as a fallback when the
+// browser reports an empty or non-standard mime (common on Safari / Windows
+// for PDFs and CSVs).
+const EXT_TO_MIME: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg", jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  pdf: "application/pdf",
+  txt: "text/plain",
+  md: "text/markdown",
+  csv: "text/csv",
+  json: "application/json",
+};
+const ALLOWED_MIMES = new Set(Object.values(EXT_TO_MIME));
+const ACCEPT_ATTR = "." + Object.keys(EXT_TO_MIME).join(",.") + ",image/*";
 const MAX_FILE_BYTES = 5000 * 1024;
 
 function formatBytes(n: number): string {
@@ -59,10 +69,29 @@ function formatBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function readFileAsDataUrl(file: File): Promise<string> {
+/** Browser-reported `file.type` is unreliable (empty on some OSes for PDFs,
+ *  "application/x-pdf" on others). Fall back to the file extension so users
+ *  don't see "type not allowed" for a normal `.pdf`. */
+function resolveMime(file: File): string {
+  const reported = (file.type || "").toLowerCase();
+  if (ALLOWED_MIMES.has(reported)) return reported;
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return EXT_TO_MIME[ext] ?? reported;
+}
+
+function readFileAsDataUrl(file: File, forcedMime?: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onload = () => {
+      let result = String(reader.result ?? "");
+      // If we had to override the mime (browser reported wrong/empty), rewrite
+      // the data: URL prefix so the server's mime/dataUrl consistency check
+      // still passes.
+      if (forcedMime && result.startsWith("data:") && !result.startsWith(`data:${forcedMime};`)) {
+        result = result.replace(/^data:[^;]*;/, `data:${forcedMime};`);
+      }
+      resolve(result);
+    };
     reader.onerror = () => reject(reader.error ?? new Error("read failed"));
     reader.readAsDataURL(file);
   });
@@ -98,25 +127,31 @@ export function ChatPanel({
   const onPickFile = async (file: File | undefined) => {
     setUploadError(null);
     if (!file) return;
-    if (!ALLOWED_MIMES.includes(file.type)) {
-      setUploadError("Only images, PDFs, and text files are allowed.");
+    const mime = resolveMime(file);
+    if (!ALLOWED_MIMES.has(mime)) {
+      setUploadError(
+        `That file type isn't supported. Try an image, PDF, .txt, .md, .csv, or .json file.`,
+      );
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      setUploadError(`Max file size is ${formatBytes(MAX_FILE_BYTES)}.`);
+      setUploadError(
+        `That file is ${formatBytes(file.size)}. The limit is ${formatBytes(MAX_FILE_BYTES)}.`,
+      );
       return;
     }
     setUploading(true);
     try {
-      const dataUrl = await readFileAsDataUrl(file);
+      const dataUrl = await readFileAsDataUrl(file, mime);
       setPending({
-        kind: file.type.startsWith("image/") ? "image" : "file",
+        kind: mime.startsWith("image/") ? "image" : "file",
         name: file.name.slice(0, 80),
-        mime: file.type,
+        mime,
         size: file.size,
         dataUrl,
       });
-    } catch {
+    } catch (err) {
+      console.error("[chat] file read failed", err);
       setUploadError("Could not read that file.");
     } finally {
       setUploading(false);
@@ -253,7 +288,9 @@ export function ChatPanel({
                   </div>
                 )}
                 {uploadError && (
-                  <div className="text-[11px] text-red-400 py-1">{uploadError}</div>
+                  <div className="my-1 px-2 py-1.5 rounded-lg bg-red-500/15 border border-red-500/40 text-[11px] text-red-200 font-medium">
+                    {uploadError}
+                  </div>
                 )}
                 {pending && (
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/10">
