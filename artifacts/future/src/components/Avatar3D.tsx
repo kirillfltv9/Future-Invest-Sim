@@ -319,7 +319,10 @@ function Torso({
   const isHoodie = id === "hoodie";
   const torsoWidth = isHoodie ? 1.25 : 1.15;
   const torsoDepth = 0.6;
-  const hasPhotoTexture = id in TOP_TEXTURES;
+  const frontZ = torsoDepth / 2 + 0.011;
+  const backZ  = -torsoDepth / 2 - 0.011;
+  // Photo tee is the only top that actually uses a real photo as a chest print.
+  const photoTexUrl = id === "photo_tee" ? TOP_TEXTURES.photo_tee : undefined;
 
   return (
     <group>
@@ -329,25 +332,19 @@ function Torso({
         <meshStandardMaterial color={color} roughness={0.8} metalness={isSuit ? 0.15 : 0} />
       </mesh>
 
-      {/* Photo-jersey front decal (Real Madrid, Man United, Liverpool, photo tee) */}
-      {hasPhotoTexture && (
+      {/* ── Real-photo jersey designs, built procedurally ────────────── */}
+      {id === "real_madrid" && (
+        <RealMadridKit torsoWidth={torsoWidth} frontZ={frontZ} backZ={backZ} />
+      )}
+      {id === "man_united" && (
+        <ManUnitedKit torsoWidth={torsoWidth} frontZ={frontZ} backZ={backZ} />
+      )}
+      {id === "liverpool" && (
+        <LiverpoolKit torsoWidth={torsoWidth} frontZ={frontZ} backZ={backZ} />
+      )}
+      {photoTexUrl && (
         <Suspense fallback={null}>
-          <JerseyDecal
-            topId={id}
-            width={torsoWidth * 0.96}
-            height={1.36}
-            y={0.65}
-            z={torsoDepth / 2 + 0.012}
-          />
-          {/* Mirror on the back so the kit looks complete from behind too */}
-          <JerseyDecal
-            topId={id}
-            width={torsoWidth * 0.96}
-            height={1.36}
-            y={0.65}
-            z={-torsoDepth / 2 - 0.012}
-            faceBack
-          />
+          <ChestPhotoPrint url={photoTexUrl} z={frontZ} />
         </Suspense>
       )}
 
@@ -416,34 +413,265 @@ function Torso({
   );
 }
 
-// ─── Jersey decal (front/back photo of a real shirt) ──────────────────────
+// ─── Photo-tee chest print (small framed photo on a plain shirt) ──────────
 
-function JerseyDecal({
-  topId, width, height, y, z, faceBack = false,
-}: {
-  topId: TopId; width: number; height: number; y: number; z: number; faceBack?: boolean;
-}) {
-  const url = TOP_TEXTURES[topId];
-  // Hook order must be stable — call it unconditionally; the parent only
-  // mounts this component when a texture exists.
-  const texture = useTexture(url ?? "");
-  if (!url) return null;
-  // Ensure the photo is crisp and never flips/wraps on the mesh.
+function ChestPhotoPrint({ url, z }: { url: string; z: number }) {
+  const texture = useTexture(url);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
   texture.wrapS = THREE.ClampToEdgeWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
   return (
-    <mesh position={[0, y, z]} rotation={[0, faceBack ? Math.PI : 0, 0]}>
-      <planeGeometry args={[width, height]} />
-      <meshStandardMaterial
-        map={texture}
-        transparent
-        roughness={0.85}
-        metalness={0}
-        side={THREE.FrontSide}
-      />
-    </mesh>
+    <group position={[0, 0.7, z]}>
+      {/* White border frame so the photo reads as a print, not a sticker */}
+      <mesh position={[0, 0, -0.001]}>
+        <planeGeometry args={[0.62, 0.86]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.9} />
+      </mesh>
+      <mesh>
+        <planeGeometry args={[0.56, 0.8]} />
+        <meshStandardMaterial map={texture} roughness={0.9} side={THREE.FrontSide} />
+      </mesh>
+    </group>
+  );
+}
+
+// ─── Adidas-style 3 shoulder stripes (white, both shoulders, front+back) ──
+
+function AdidasShoulderStripes({
+  torsoWidth, frontZ, backZ,
+}: { torsoWidth: number; frontZ: number; backZ: number }) {
+  // Three thin vertical bars near each shoulder top.
+  const stripeColor = "#ffffff";
+  const stripeW = 0.05;
+  const stripeH = 0.34;
+  const gap = 0.07;
+  const topY = 1.27;
+  const shoulderX = torsoWidth / 2 - 0.18;
+  const rows = [-1, 0, 1].map((i) => i * gap);
+
+  const stripeAt = (x: number, z: number, key: string) => (
+    <group key={key} position={[x, topY, z]}>
+      {rows.map((dx, i) => (
+        <mesh key={i} position={[dx, 0, 0]}>
+          <planeGeometry args={[stripeW, stripeH]} />
+          <meshStandardMaterial color={stripeColor} roughness={0.85} />
+        </mesh>
+      ))}
+    </group>
+  );
+
+  return (
+    <group>
+      {stripeAt(-shoulderX, frontZ, "fl")}
+      {stripeAt( shoulderX, frontZ, "fr")}
+      <group rotation={[0, Math.PI, 0]}>
+        {stripeAt( shoulderX, -backZ, "bl")}
+        {stripeAt(-shoulderX, -backZ, "br")}
+      </group>
+    </group>
+  );
+}
+
+// ─── Real Madrid 2024-25 away kit (navy + "Emirates Fly Better") ──────────
+
+function RealMadridKit({
+  torsoWidth, frontZ, backZ,
+}: { torsoWidth: number; frontZ: number; backZ: number }) {
+  return (
+    <group>
+      <AdidasShoulderStripes torsoWidth={torsoWidth} frontZ={frontZ} backZ={backZ} />
+      {/* Club crest patch on the right chest */}
+      <mesh position={[0.28, 1.05, frontZ]}>
+        <planeGeometry args={[0.18, 0.22]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.8} />
+      </mesh>
+      <Text
+        position={[0.28, 1.05, frontZ + 0.001]}
+        fontSize={0.085}
+        color="#1d2540"
+        anchorX="center"
+        anchorY="middle"
+        fontWeight={900 as unknown as number}
+      >
+        RM
+      </Text>
+      {/* "EMIRATES" main sponsor */}
+      <Text
+        position={[0, 0.78, frontZ]}
+        fontSize={0.13}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.004}
+        outlineColor="#0b1126"
+        letterSpacing={0.05}
+        maxWidth={1.0}
+      >
+        EMIRATES
+      </Text>
+      {/* "FLY BETTER" tagline */}
+      <Text
+        position={[0, 0.64, frontZ]}
+        fontSize={0.07}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+        letterSpacing={0.1}
+      >
+        FLY BETTER
+      </Text>
+      {/* Adidas logo (chest, opposite the crest) */}
+      <Text
+        position={[-0.28, 1.05, frontZ]}
+        fontSize={0.07}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+      >
+        adidas
+      </Text>
+    </group>
+  );
+}
+
+// ─── Manchester United 07/08 Ronaldo #7 (red, name + number on back) ──────
+
+function ManUnitedKit({
+  torsoWidth: _torsoWidth, frontZ, backZ,
+}: { torsoWidth: number; frontZ: number; backZ: number }) {
+  return (
+    <group>
+      {/* Front: club crest on the left chest, sponsor strip across mid */}
+      <mesh position={[-0.28, 1.05, frontZ]}>
+        <planeGeometry args={[0.18, 0.22]} />
+        <meshStandardMaterial color="#ffdf00" roughness={0.8} />
+      </mesh>
+      <Text
+        position={[-0.28, 1.05, frontZ + 0.001]}
+        fontSize={0.075}
+        color="#b91c1c"
+        anchorX="center"
+        anchorY="middle"
+        fontWeight={900 as unknown as number}
+      >
+        MUFC
+      </Text>
+      <Text
+        position={[0.28, 1.05, frontZ]}
+        fontSize={0.07}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+      >
+        Nike
+      </Text>
+      {/* "AIG" chest sponsor (07/08 kit) */}
+      <Text
+        position={[0, 0.78, frontZ]}
+        fontSize={0.16}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.005}
+        outlineColor="#3a0a0a"
+        letterSpacing={0.08}
+      >
+        AIG
+      </Text>
+
+      {/* Back: RONALDO name arched above a huge 7 */}
+      <group rotation={[0, Math.PI, 0]}>
+        <Text
+          position={[0, 1.15, -backZ]}
+          fontSize={0.13}
+          color="#ffffff"
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.006}
+          outlineColor="#3a0a0a"
+          letterSpacing={0.08}
+        >
+          RONALDO
+        </Text>
+        <Text
+          position={[0, 0.65, -backZ]}
+          fontSize={0.72}
+          color="#ffffff"
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.012}
+          outlineColor="#3a0a0a"
+          fontWeight={900 as unknown as number}
+        >
+          7
+        </Text>
+      </group>
+    </group>
+  );
+}
+
+// ─── Liverpool home kit (red + "Standard Chartered" + Liver bird) ─────────
+
+function LiverpoolKit({
+  torsoWidth, frontZ, backZ,
+}: { torsoWidth: number; frontZ: number; backZ: number }) {
+  return (
+    <group>
+      <AdidasShoulderStripes torsoWidth={torsoWidth} frontZ={frontZ} backZ={backZ} />
+      {/* Liver bird crest patch */}
+      <mesh position={[0.28, 1.05, frontZ]}>
+        <planeGeometry args={[0.2, 0.22]} />
+        <meshStandardMaterial color="#ffd54a" roughness={0.85} />
+      </mesh>
+      <Text
+        position={[0.28, 1.05, frontZ + 0.001]}
+        fontSize={0.085}
+        color="#c8102e"
+        anchorX="center"
+        anchorY="middle"
+        fontWeight={900 as unknown as number}
+      >
+        LFC
+      </Text>
+      {/* Standard Chartered main sponsor */}
+      <Text
+        position={[0, 0.85, frontZ]}
+        fontSize={0.085}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.003}
+        outlineColor="#5a070f"
+        letterSpacing={0.03}
+        maxWidth={1.0}
+      >
+        Standard
+      </Text>
+      <Text
+        position={[0, 0.74, frontZ]}
+        fontSize={0.085}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.003}
+        outlineColor="#5a070f"
+        letterSpacing={0.03}
+        maxWidth={1.0}
+      >
+        Chartered
+      </Text>
+      {/* Adidas logo (top center, above sponsor) */}
+      <Text
+        position={[-0.28, 1.05, frontZ]}
+        fontSize={0.07}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+      >
+        adidas
+      </Text>
+    </group>
   );
 }
 
