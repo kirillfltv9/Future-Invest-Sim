@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Float, Text, ContactShadows } from "@react-three/drei";
+import { OrbitControls, Float, Text, ContactShadows, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import {
-  type AvatarConfig,
+  type AvatarConfig, type TopId,
   SKIN_OPTIONS, HAIR_OPTIONS, HAT_OPTIONS, TOP_OPTIONS, BOTTOMS_OPTIONS, SHOES_OPTIONS,
+  TOP_TEXTURES, LONG_SLEEVE_TOPS,
 } from "@/lib/avatar";
 
 interface Props {
@@ -318,6 +319,7 @@ function Torso({
   const isHoodie = id === "hoodie";
   const torsoWidth = isHoodie ? 1.25 : 1.15;
   const torsoDepth = 0.6;
+  const hasPhotoTexture = id in TOP_TEXTURES;
 
   return (
     <group>
@@ -326,6 +328,28 @@ function Torso({
         <boxGeometry args={[torsoWidth, 1.4, torsoDepth]} />
         <meshStandardMaterial color={color} roughness={0.8} metalness={isSuit ? 0.15 : 0} />
       </mesh>
+
+      {/* Photo-jersey front decal (Real Madrid, Man United, Liverpool, photo tee) */}
+      {hasPhotoTexture && (
+        <Suspense fallback={null}>
+          <JerseyDecal
+            topId={id}
+            width={torsoWidth * 0.96}
+            height={1.36}
+            y={0.65}
+            z={torsoDepth / 2 + 0.012}
+          />
+          {/* Mirror on the back so the kit looks complete from behind too */}
+          <JerseyDecal
+            topId={id}
+            width={torsoWidth * 0.96}
+            height={1.36}
+            y={0.65}
+            z={-torsoDepth / 2 - 0.012}
+            faceBack
+          />
+        </Suspense>
+      )}
 
       {/* Suit collar/lapels */}
       {isSuit && (
@@ -392,6 +416,37 @@ function Torso({
   );
 }
 
+// ─── Jersey decal (front/back photo of a real shirt) ──────────────────────
+
+function JerseyDecal({
+  topId, width, height, y, z, faceBack = false,
+}: {
+  topId: TopId; width: number; height: number; y: number; z: number; faceBack?: boolean;
+}) {
+  const url = TOP_TEXTURES[topId];
+  // Hook order must be stable — call it unconditionally; the parent only
+  // mounts this component when a texture exists.
+  const texture = useTexture(url ?? "");
+  if (!url) return null;
+  // Ensure the photo is crisp and never flips/wraps on the mesh.
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  return (
+    <mesh position={[0, y, z]} rotation={[0, faceBack ? Math.PI : 0, 0]}>
+      <planeGeometry args={[width, height]} />
+      <meshStandardMaterial
+        map={texture}
+        transparent
+        roughness={0.85}
+        metalness={0}
+        side={THREE.FrontSide}
+      />
+    </mesh>
+  );
+}
+
 // ─── Arms ─────────────────────────────────────────────────────────────────
 
 function Arms({
@@ -400,7 +455,7 @@ function Arms({
   topColor: string; skinColor: string; skinDark: string; topId: AvatarConfig["top"];
 }) {
   // Sleeve length per top
-  const sleeveLen = topId === "tee" || topId === "jersey" ? 0.4 : 1.0;
+  const sleeveLen = LONG_SLEEVE_TOPS.has(topId) ? 1.0 : 0.4;
   const armLen = 1.1;
   const handLen = armLen - sleeveLen;
   const sleeveY = 0.85 - sleeveLen / 2;

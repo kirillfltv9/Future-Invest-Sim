@@ -1,10 +1,20 @@
 // Shared avatar types, item catalogs, defaults, and storage helpers.
 
+// Real photo jersey textures (background-removed cutouts) bundled with the
+// app. These are mapped onto the front of the 3D torso, with transparent
+// margins so the silhouette of the actual shirt blends into the avatar.
+import realMadridImg from "@/assets/jerseys/real_madrid.png";
+import manUnitedImg  from "@/assets/jerseys/man_united.png";
+import liverpoolImg  from "@/assets/jerseys/liverpool.png";
+import photoTeeImg   from "@/assets/jerseys/photo_tee.png";
+
 export type SkinId       = "light" | "tan" | "brown" | "deep" | "gold";
 export type HairId       = "bald"  | "short" | "long" | "curly" | "mohawk" | "ponytail";
 export type ExpressionId = "smile" | "smirk" | "shades" | "monocle" | "wink";
 export type HatId        = "none"  | "cap"  | "beanie" | "tophat" | "crown";
-export type TopId        = "tee"   | "hoodie" | "suit"  | "jersey" | "racing";
+export type TopId        =
+  | "tee" | "hoodie" | "suit" | "jersey" | "racing"
+  | "real_madrid" | "man_united" | "liverpool" | "photo_tee";
 export type BottomsId    = "jeans" | "shorts" | "slacks" | "sweats";
 export type ShoesId      = "barefoot" | "sneakers" | "boots" | "heels" | "sandals";
 
@@ -53,12 +63,34 @@ export const HAT_OPTIONS: { id: HatId; color: string | null; label: string }[] =
 ];
 
 export const TOP_OPTIONS: { id: TopId; color: string; label: string }[] = [
-  { id: "tee",    color: "#4a90e2", label: "Tee" },
-  { id: "hoodie", color: "#7c3aed", label: "Hoodie" },
-  { id: "suit",   color: "#1f2937", label: "Suit" },
-  { id: "jersey", color: "#dc2626", label: "Jersey" },
-  { id: "racing", color: "#f59e0b", label: "Racing" },
+  { id: "tee",         color: "#4a90e2", label: "Tee" },
+  { id: "hoodie",      color: "#7c3aed", label: "Hoodie" },
+  { id: "suit",        color: "#1f2937", label: "Suit" },
+  { id: "jersey",      color: "#dc2626", label: "Jersey" },
+  { id: "racing",      color: "#f59e0b", label: "Racing" },
+  // Real-photo jerseys. `color` is the fallback / 2D thumbnail tint that
+  // matches the dominant colour of the actual shirt photo.
+  { id: "real_madrid", color: "#1d2540", label: "Real Madrid" },
+  { id: "man_united",  color: "#b91c1c", label: "Man United #7" },
+  { id: "liverpool",   color: "#c8102e", label: "Liverpool" },
+  { id: "photo_tee",   color: "#d6d6d6", label: "Photo tee" },
 ];
+
+/** Image URL (resolved by Vite) for each photo-jersey top, used as the
+ *  texture on the 3D torso. Tops not in this map render as flat colour. */
+export const TOP_TEXTURES: Partial<Record<TopId, string>> = {
+  real_madrid: realMadridImg,
+  man_united:  manUnitedImg,
+  liverpool:   liverpoolImg,
+  photo_tee:   photoTeeImg,
+};
+
+/** Tops with a long sleeve cut (sleeves extend down past the elbow).
+ *  Preserves the original behavior (everything except short-sleeve tee/jersey
+ *  is long) and adds the new long-sleeve Man United Ronaldo kit. */
+export const LONG_SLEEVE_TOPS: ReadonlySet<TopId> = new Set<TopId>([
+  "hoodie", "suit", "racing", "man_united",
+]);
 
 export const BOTTOMS_OPTIONS: { id: BottomsId; color: string; label: string }[] = [
   { id: "jeans",  color: "#1e3a8a", label: "Jeans" },
