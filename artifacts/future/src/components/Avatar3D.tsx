@@ -380,20 +380,23 @@ function Torso({
         </mesh>
       )}
 
-      {/* Jersey label across chest */}
+      {/* Jersey label across the BACK (like a player name above the number) */}
       {label && (
-        <Text
-          position={[0, 0.85, torsoDepth / 2 + 0.01]}
-          fontSize={0.22}
-          color="#ffffff"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.012}
-          outlineColor="#000000"
-          maxWidth={1.0}
-        >
-          {label}
-        </Text>
+        <group rotation={[0, Math.PI, 0]}>
+          <Text
+            position={[0, 1.15, torsoDepth / 2 + 0.01]}
+            fontSize={0.18}
+            color="#ffffff"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.012}
+            outlineColor="#000000"
+            letterSpacing={0.08}
+            maxWidth={1.0}
+          >
+            {label.toUpperCase()}
+          </Text>
+        </group>
       )}
 
       {/* Racing stripes for racing top */}
