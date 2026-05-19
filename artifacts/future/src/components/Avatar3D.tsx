@@ -97,7 +97,13 @@ function Character({ avatar }: { avatar: AvatarConfig }) {
       <Shoes id={avatar.shoes} color={shoes.color} skinColor={skin.color} bottomsId={avatar.bottoms} />
 
       {/* ── Torso / top ──────────────────────────────────────────────── */}
-      <Torso id={avatar.top} color={top.color} darkColor={topDark} label={avatar.topLabel} />
+      <Torso
+        id={avatar.top}
+        color={top.color}
+        darkColor={topDark}
+        label={avatar.topLabel}
+        number={avatar.topNumber}
+      />
 
       {/* ── Arms ─────────────────────────────────────────────────────── */}
       <Arms topColor={top.color} skinColor={skin.color} skinDark={skinDark} topId={avatar.top} />
@@ -310,9 +316,9 @@ function Shoes({
 // ─── Torso ────────────────────────────────────────────────────────────────
 
 function Torso({
-  id, color, darkColor, label,
+  id, color, darkColor, label, number,
 }: {
-  id: AvatarConfig["top"]; color: string; darkColor: string; label: string;
+  id: AvatarConfig["top"]; color: string; darkColor: string; label: string; number: string;
 }) {
   // Slightly different torso shape per top
   const isSuit = id === "suit";
@@ -380,22 +386,38 @@ function Torso({
         </mesh>
       )}
 
-      {/* Jersey label across the BACK (like a player name above the number) */}
-      {label && (
+      {/* Player name + number on the BACK of the shirt */}
+      {(label || number) && (
         <group rotation={[0, Math.PI, 0]}>
-          <Text
-            position={[0, 1.15, torsoDepth / 2 + 0.01]}
-            fontSize={0.18}
-            color="#ffffff"
-            anchorX="center"
-            anchorY="middle"
-            outlineWidth={0.012}
-            outlineColor="#000000"
-            letterSpacing={0.08}
-            maxWidth={1.0}
-          >
-            {label.toUpperCase()}
-          </Text>
+          {label && (
+            <Text
+              position={[0, 1.18, torsoDepth / 2 + 0.01]}
+              fontSize={0.16}
+              color="#ffffff"
+              anchorX="center"
+              anchorY="middle"
+              outlineWidth={0.01}
+              outlineColor="#000000"
+              letterSpacing={0.08}
+              maxWidth={1.0}
+            >
+              {label.toUpperCase()}
+            </Text>
+          )}
+          {number && (
+            <Text
+              position={[0, 0.6, torsoDepth / 2 + 0.01]}
+              fontSize={0.7}
+              color="#ffffff"
+              anchorX="center"
+              anchorY="middle"
+              outlineWidth={0.014}
+              outlineColor="#000000"
+              fontWeight={900 as unknown as number}
+            >
+              {number}
+            </Text>
+          )}
         </group>
       )}
 

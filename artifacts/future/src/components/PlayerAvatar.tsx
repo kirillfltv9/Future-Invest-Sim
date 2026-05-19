@@ -99,7 +99,7 @@ export function PlayerAvatar({ avatar, size = 200, compact = false, className }:
       {/* ── Top / shirt ── */}
       <Top id={avatar.top} fill={`url(#top-${uid})`} stroke={topDark} />
 
-      {/* Custom jersey label */}
+      {/* Custom jersey label (shown as a chest print in the 2D thumbnail) */}
       {avatar.topLabel && (
         <g transform="translate(120 165)">
           <text
@@ -108,7 +108,7 @@ export function PlayerAvatar({ avatar, size = 200, compact = false, className }:
             textAnchor="middle"
             fontFamily="system-ui, ui-sans-serif, sans-serif"
             fontWeight={800}
-            fontSize={22}
+            fontSize={20}
             fill="#fff"
             stroke="rgba(0,0,0,0.35)"
             strokeWidth={0.6}
@@ -116,9 +116,27 @@ export function PlayerAvatar({ avatar, size = 200, compact = false, className }:
             lengthAdjust="spacingAndGlyphs"
             textLength={Math.min(120, avatar.topLabel.length * 14)}
           >
-            {avatar.topLabel}
+            {avatar.topLabel.toUpperCase()}
           </text>
         </g>
+      )}
+
+      {/* Custom jersey number (shown big under the name in the 2D thumbnail) */}
+      {avatar.topNumber && (
+        <text
+          x={120}
+          y={205}
+          textAnchor="middle"
+          fontFamily="system-ui, ui-sans-serif, sans-serif"
+          fontWeight={900}
+          fontSize={42}
+          fill="#fff"
+          stroke="rgba(0,0,0,0.5)"
+          strokeWidth={1}
+          style={{ paintOrder: "stroke" }}
+        >
+          {avatar.topNumber}
+        </text>
       )}
 
       {/* ── Neck ── */}

@@ -21,6 +21,7 @@ export interface AvatarConfig {
   hat: string;
   top: string;
   topLabel: string;
+  topNumber: string;
   bottoms: string;
   shoes: string;
 }

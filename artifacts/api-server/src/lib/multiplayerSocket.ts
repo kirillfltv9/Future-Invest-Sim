@@ -69,7 +69,10 @@ const SKIN_IDS       = new Set(["light", "tan", "brown", "deep", "gold"]);
 const HAIR_IDS       = new Set(["bald", "short", "long", "curly", "mohawk", "ponytail"]);
 const EXPRESSION_IDS = new Set(["smile", "smirk", "shades", "monocle", "wink"]);
 const HAT_IDS        = new Set(["none", "cap", "beanie", "tophat", "crown"]);
-const TOP_IDS        = new Set(["tee", "hoodie", "suit", "jersey", "racing"]);
+const TOP_IDS        = new Set([
+  "tee", "hoodie", "suit", "jersey", "racing",
+  "real_madrid", "man_united", "liverpool", "photo_tee",
+]);
 const BOTTOMS_IDS    = new Set(["jeans", "shorts", "slacks", "sweats"]);
 const SHOES_IDS      = new Set(["barefoot", "sneakers", "boots", "heels", "sandals"]);
 
@@ -86,6 +89,10 @@ function sanitizeAvatar(input: unknown): AvatarConfig | null {
     .replace(/[^\x20-\x7E]/g, "")
     .slice(0, 8)
     .trimEnd();
+  const numberRaw = typeof r["topNumber"] === "string" ? r["topNumber"]
+                  : typeof r["topNumber"] === "number" ? String(r["topNumber"])
+                  : "";
+  const topNumber = numberRaw.replace(/\D+/g, "").slice(0, 2);
   return {
     skin:       pickEnum(r["skin"],       SKIN_IDS,       "tan"),
     hair:       pickEnum(r["hair"],       HAIR_IDS,       "short"),
@@ -93,6 +100,7 @@ function sanitizeAvatar(input: unknown): AvatarConfig | null {
     hat:        pickEnum(r["hat"],        HAT_IDS,        "none"),
     top:        pickEnum(r["top"],        TOP_IDS,        "tee"),
     topLabel,
+    topNumber,
     bottoms:    pickEnum(r["bottoms"],    BOTTOMS_IDS,    "jeans"),
     shoes:      pickEnum(r["shoes"],      SHOES_IDS,      "sneakers"),
   };

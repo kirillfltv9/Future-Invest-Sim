@@ -24,7 +24,8 @@ export interface AvatarConfig {
   expression: ExpressionId;
   hat: HatId;
   top: TopId;
-  topLabel: string; // short jersey label, 0-8 chars
+  topLabel: string;  // short jersey label, 0-8 chars
+  topNumber: string; // jersey number on the back, 0-2 digits ("" = none)
   bottoms: BottomsId;
   shoes: ShoesId;
 }
@@ -108,6 +109,7 @@ export const SHOES_OPTIONS: { id: ShoesId; color: string; label: string }[] = [
 ];
 
 export const TOP_LABEL_MAX_LEN = 8;
+export const TOP_NUMBER_MAX_LEN = 2;
 
 export const DEFAULT_AVATAR: AvatarConfig = {
   skin: "tan",
@@ -116,6 +118,7 @@ export const DEFAULT_AVATAR: AvatarConfig = {
   hat: "none",
   top: "tee",
   topLabel: "",
+  topNumber: "",
   bottoms: "jeans",
   shoes: "sneakers",
 };
@@ -142,6 +145,10 @@ export function sanitizeAvatar(raw: unknown): AvatarConfig {
     .replace(/[^\x20-\x7E]/g, "") // printable ASCII only
     .slice(0, TOP_LABEL_MAX_LEN)
     .trimEnd();
+  const numberRaw = typeof r["topNumber"] === "string" ? r["topNumber"]
+                  : typeof r["topNumber"] === "number" ? String(r["topNumber"])
+                  : "";
+  const topNumber = numberRaw.replace(/\D+/g, "").slice(0, TOP_NUMBER_MAX_LEN);
   return {
     skin:       pick<SkinId>(r["skin"],       ID_SETS.skin,       DEFAULT_AVATAR.skin),
     hair:       pick<HairId>(r["hair"],       ID_SETS.hair,       DEFAULT_AVATAR.hair),
@@ -149,6 +156,7 @@ export function sanitizeAvatar(raw: unknown): AvatarConfig {
     hat:        pick<HatId>(r["hat"],         ID_SETS.hat,        DEFAULT_AVATAR.hat),
     top:        pick<TopId>(r["top"],         ID_SETS.top,        DEFAULT_AVATAR.top),
     topLabel,
+    topNumber,
     bottoms:    pick<BottomsId>(r["bottoms"], ID_SETS.bottoms,    DEFAULT_AVATAR.bottoms),
     shoes:      pick<ShoesId>(r["shoes"],     ID_SETS.shoes,      DEFAULT_AVATAR.shoes),
   };

@@ -6,7 +6,7 @@ import {
 import {
   type AvatarConfig,
   SKIN_OPTIONS, HAIR_OPTIONS, EXPRESSION_OPTIONS, HAT_OPTIONS, TOP_OPTIONS, BOTTOMS_OPTIONS, SHOES_OPTIONS,
-  TOP_LABEL_MAX_LEN,
+  TOP_LABEL_MAX_LEN, TOP_NUMBER_MAX_LEN,
   saveStoredAvatar,
 } from "@/lib/avatar";
 import { PlayerAvatar } from "./PlayerAvatar";
@@ -65,6 +65,7 @@ export function AvatarBuilder({ initialAvatar, playerName, onConfirm, confirmLab
       hat: pickOne(HAT_OPTIONS).id,
       top: pickOne(TOP_OPTIONS).id,
       topLabel: avatar.topLabel,
+      topNumber: avatar.topNumber,
       bottoms: pickOne(BOTTOMS_OPTIONS).id,
       shoes: pickOne(SHOES_OPTIONS).id,
     });
@@ -190,23 +191,44 @@ export function AvatarBuilder({ initialAvatar, playerName, onConfirm, confirmLab
                 {CATEGORIES.find((c) => c.id === active)?.label}
               </div>
               {active === "top" && (
-                <div className="flex items-center gap-2">
-                  <label className="text-[11px] text-muted-foreground uppercase tracking-wider">
-                    Jersey label
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={TOP_LABEL_MAX_LEN}
-                    value={avatar.topLabel}
-                    onChange={(e) =>
-                      update(
-                        "topLabel",
-                        e.target.value.replace(/[^\x20-\x7E]/g, "").slice(0, TOP_LABEL_MAX_LEN),
-                      )
-                    }
-                    placeholder="GOAT"
-                    className="w-28 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-sm font-display font-bold uppercase tracking-wider text-amber-200 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
-                  />
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={TOP_LABEL_MAX_LEN}
+                      value={avatar.topLabel}
+                      onChange={(e) =>
+                        update(
+                          "topLabel",
+                          e.target.value.replace(/[^\x20-\x7E]/g, "").slice(0, TOP_LABEL_MAX_LEN),
+                        )
+                      }
+                      placeholder="GOAT"
+                      className="w-28 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-sm font-display font-bold uppercase tracking-wider text-amber-200 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                      Number
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={TOP_NUMBER_MAX_LEN}
+                      value={avatar.topNumber}
+                      onChange={(e) =>
+                        update(
+                          "topNumber",
+                          e.target.value.replace(/\D+/g, "").slice(0, TOP_NUMBER_MAX_LEN),
+                        )
+                      }
+                      placeholder="7"
+                      className="w-14 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-center text-sm font-display font-bold text-amber-200 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20"
+                    />
+                  </div>
                 </div>
               )}
             </div>
