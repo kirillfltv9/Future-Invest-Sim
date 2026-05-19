@@ -416,7 +416,7 @@ function Torso({
   );
 }
 
-// ─── Photo-tee chest print (small framed photo on a plain shirt) ──────────
+// ─── Photo-tee print (raw picture across the full front of the shirt) ─────
 
 function ChestPhotoPrint({ url, z }: { url: string; z: number }) {
   const texture = useTexture(url);
@@ -425,17 +425,10 @@ function ChestPhotoPrint({ url, z }: { url: string; z: number }) {
   texture.wrapS = THREE.ClampToEdgeWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
   return (
-    <group position={[0, 0.7, z]}>
-      {/* White border frame so the photo reads as a print, not a sticker */}
-      <mesh position={[0, 0, -0.001]}>
-        <planeGeometry args={[0.62, 0.86]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.9} />
-      </mesh>
-      <mesh>
-        <planeGeometry args={[0.56, 0.8]} />
-        <meshStandardMaterial map={texture} roughness={0.9} side={THREE.FrontSide} />
-      </mesh>
-    </group>
+    <mesh position={[0, 0.65, z]}>
+      <planeGeometry args={[1.1, 1.36]} />
+      <meshStandardMaterial map={texture} transparent roughness={0.9} side={THREE.FrontSide} />
+    </mesh>
   );
 }
 
