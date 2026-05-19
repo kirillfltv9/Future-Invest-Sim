@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { getSessionId } from "@/lib/session";
-import { TrendingUp, Monitor, Sparkles, BookOpen, KeyRound, UserCog } from "lucide-react";
+import { TrendingUp, Monitor, Sparkles, BookOpen, KeyRound, UserCog, Gift, Share2, Check } from "lucide-react";
 import { ResumeModal } from "@/components/ResumeModal";
 import { NicknameModal } from "@/components/NicknameModal";
 import { hasBeenPromptedForNickname, loadNickname } from "@/lib/nickname";
@@ -23,6 +23,7 @@ export function Landing() {
       const t = setTimeout(() => setShowNickname(true), 350);
       return () => clearTimeout(t);
     }
+    return;
   }, [setLocation]);
 
   const closeNickname = () => {
@@ -32,6 +33,7 @@ export function Landing() {
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-background">
+      <ShareBanner />
       <div className="absolute inset-0 z-0">
         <img
           src={`${import.meta.env.BASE_URL}images/landing-bg.png`}
@@ -169,5 +171,75 @@ export function Landing() {
       <ResumeModal isOpen={showResume} onClose={() => setShowResume(false)} />
       <NicknameModal isOpen={showNickname} onClose={closeNickname} />
     </div>
+  );
+}
+
+function ShareBanner() {
+  const [copied, setCopied] = useState(false);
+
+  const shareUrl =
+    typeof window !== "undefined" ? window.location.origin + window.location.pathname : "";
+  const shareText =
+    "Join me on Future — an investment simulator. Share it with a friend and you both unlock a free feature!";
+
+  const onShare = async () => {
+    try {
+      const nav = navigator as Navigator & {
+        share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
+      };
+      if (nav.share) {
+        await nav.share({ title: "Future", text: shareText, url: shareUrl });
+        return;
+      }
+    } catch {
+      // user cancelled or share failed — fall through to clipboard
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ y: -40, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5, delay: 0.1 }}
+      className="absolute top-0 left-0 right-0 z-30"
+    >
+      <div className="mx-auto max-w-5xl px-3 pt-3">
+        <div className="flex items-center gap-3 rounded-xl border border-amber-400/30 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-violet-500/15 backdrop-blur-md px-4 py-2.5 shadow-[0_0_30px_rgba(251,191,36,0.15)]">
+          <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-amber-400/20 text-amber-300 flex items-center justify-center">
+            <Gift className="w-4 h-4" />
+          </div>
+          <p className="flex-1 text-xs sm:text-sm text-amber-100/90 leading-snug">
+            <span className="font-bold text-amber-300">Share Future with a friend</span>
+            <span className="hidden sm:inline"> — </span>
+            <span className="block sm:inline text-amber-100/70">
+              and unlock a free feature on the house.
+            </span>
+          </p>
+          <button
+            onClick={onShare}
+            className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-400 text-black hover:bg-amber-300 transition-colors px-3 py-1.5 text-xs font-bold uppercase tracking-wider"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Share2 className="w-3.5 h-3.5" />
+                Share
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </motion.div>
   );
 }
