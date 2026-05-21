@@ -130,6 +130,7 @@ export const STOCKS: StockDefinition[] = [
   { ticker: "F1CO", name: "Formula 1 Holdings", sector: "Pop Culture", description: "Global motorsport circus — racing, streaming, and brand", volatility: 0.024, dividendYield: 0.009, basePrice: 88.6, trend: 0.0003, assetType: "fun" },
   { ticker: "UEFA", name: "UEFA Corp", sector: "Pop Culture", description: "European football's governing body — Champions League, Euros, and global broadcast rights", volatility: 0.022, dividendYield: 0.010, basePrice: 286.98, trend: 0.0004, assetType: "fun" },
   { ticker: "FIFA", name: "FIFA Corp", sector: "Pop Culture", description: "World football's governing body — the World Cup, sponsorships, and licensing empire", volatility: 0.024, dividendYield: 0.008, basePrice: 178.56, trend: 0.0004, assetType: "fun" },
+  { ticker: "LVPC", name: "Liverpool Corp", sector: "Pop Culture", description: "Anfield's commercial arm — kit deals, transfers, and global fan merchandise", volatility: 0.023, dividendYield: 0.011, basePrice: 50.64, trend: 0.0003, assetType: "fun" },
 
   // ── WORLD CURRENCIES (grouped by continent) ──────────────────────────────────
   { ticker: "DZDX", name: "Algerian Dinar", sector: "Currency", description: "Currency of Algeria", volatility: 0.018, dividendYield: 0.000, basePrice: 0.0073, trend: 0.0, assetType: "currency", continent: "Africa" },

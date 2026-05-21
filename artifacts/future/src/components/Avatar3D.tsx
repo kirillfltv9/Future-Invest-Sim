@@ -413,7 +413,7 @@ function Torso({
               anchorY="middle"
               outlineWidth={0.014}
               outlineColor="#000000"
-              fontWeight={900 as unknown as number}
+              fontWeight="bold"
             >
               {number}
             </Text>
@@ -510,7 +510,7 @@ function RealMadridKit({
         color="#1d2540"
         anchorX="center"
         anchorY="middle"
-        fontWeight={900 as unknown as number}
+        fontWeight="bold"
       >
         RM
       </Text>
@@ -571,7 +571,7 @@ function ManUnitedKit({
         color="#b91c1c"
         anchorX="center"
         anchorY="middle"
-        fontWeight={900 as unknown as number}
+        fontWeight="bold"
       >
         MUFC
       </Text>
@@ -620,7 +620,7 @@ function ManUnitedKit({
           anchorY="middle"
           outlineWidth={0.012}
           outlineColor="#3a0a0a"
-          fontWeight={900 as unknown as number}
+          fontWeight="bold"
         >
           7
         </Text>
@@ -648,7 +648,7 @@ function LiverpoolKit({
         color="#c8102e"
         anchorX="center"
         anchorY="middle"
-        fontWeight={900 as unknown as number}
+        fontWeight="bold"
       >
         LFC
       </Text>
