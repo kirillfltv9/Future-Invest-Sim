@@ -197,6 +197,7 @@ export function MultiplayerRoom() {
         isHost={mp.isHost}
         myPlayerId={mp.myPlayerId}
         chatMessages={mp.chatMessages}
+        chatCooldownUntil={mp.chatCooldownUntil}
         liveReactions={mp.liveReactions}
         consumeReaction={mp.consumeReaction}
         onTrade={mp.trade}
@@ -471,6 +472,7 @@ function PlayingView({
   isHost,
   myPlayerId,
   chatMessages,
+  chatCooldownUntil,
   liveReactions,
   consumeReaction,
   onTrade,
@@ -488,6 +490,7 @@ function PlayingView({
   isHost: boolean;
   myPlayerId: string | null;
   chatMessages: ReturnType<typeof useMultiplayerRoom>["chatMessages"];
+  chatCooldownUntil: number;
   liveReactions: ReturnType<typeof useMultiplayerRoom>["liveReactions"];
   consumeReaction: (id: string) => void;
   onTrade: (ticker: string, action: "buy" | "sell", shares: number) => void;
@@ -941,6 +944,7 @@ function PlayingView({
         open={chatOpen}
         onToggle={() => setChatOpen((v) => !v)}
         unread={unread}
+        cooldownUntil={chatCooldownUntil ?? 0}
       />
 
       {/* Achievement toasts */}

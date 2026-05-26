@@ -43,7 +43,14 @@ interface Props {
   open: boolean;
   onToggle: () => void;
   unread: number;
+  /** Epoch ms when the next chat send is allowed. 0 = no cooldown. */
+  cooldownUntil?: number;
 }
+
+// Mirror of the server's MIN_CHAT_MS — keeps the client throttling itself a
+// hair tighter than the wire limit so we never get a server `chat_rate_limited`
+// in normal use. Server enforces it regardless; this is just UX.
+const CLIENT_CHAT_COOLDOWN_MS = 650;
 
 // Map of file extension → canonical mime type. Used as a fallback when the
 // browser reports an empty or non-standard mime (common on Safari / Windows
@@ -99,15 +106,31 @@ function readFileAsDataUrl(file: File, forcedMime?: string): Promise<string> {
 
 /** Side chat panel + quick reaction buttons. */
 export function ChatPanel({
-  messages, myPlayerId, onSend, onReact, open, onToggle, unread,
+  messages, myPlayerId, onSend, onReact, open, onToggle, unread, cooldownUntil = 0,
 }: Props) {
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState<ChatAttachment | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // Local cooldown (set on every send) is unioned with the server-pushed
+  // cooldownUntil prop so we throttle both proactively and reactively.
+  const [localCooldownUntil, setLocalCooldownUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  const effectiveCooldownUntil = Math.max(cooldownUntil, localCooldownUntil);
+  const cooldownRemainingMs = Math.max(0, effectiveCooldownUntil - now);
+  const inCooldown = cooldownRemainingMs > 0;
+
+  // Tick a clock only while we're actually cooling down — keeps the component
+  // re-rendering ~10 fps for the countdown UI without burning cycles idle.
+  useEffect(() => {
+    if (!inCooldown) return;
+    const id = setInterval(() => setNow(Date.now()), 100);
+    return () => clearInterval(id);
+  }, [inCooldown]);
 
   useEffect(() => {
     if (!open) return;
@@ -116,12 +139,14 @@ export function ChatPanel({
   }, [messages, open]);
 
   const submit = () => {
+    if (inCooldown) return;
     const text = draft.trim().slice(0, 200);
     if (!text && !pending) return;
     onSend(text, pending ?? undefined);
     setDraft("");
     setPending(null);
     setUploadError(null);
+    setLocalCooldownUntil(Date.now() + CLIENT_CHAT_COOLDOWN_MS);
   };
 
   const onPickFile = async (file: File | undefined) => {
@@ -358,16 +383,25 @@ export function ChatPanel({
               />
               <button
                 type="submit"
-                disabled={!draft.trim() && !pending}
+                disabled={(!draft.trim() && !pending) || inCooldown}
                 className={cn(
-                  "px-3 rounded-xl flex items-center justify-center transition-all",
-                  draft.trim() || pending
-                    ? "bg-amber-500 text-black hover:bg-amber-400"
-                    : "bg-white/5 text-muted-foreground/40 cursor-not-allowed"
+                  "px-3 rounded-xl flex items-center justify-center transition-all min-w-[44px]",
+                  inCooldown
+                    ? "bg-white/10 text-amber-300/60 cursor-not-allowed"
+                    : draft.trim() || pending
+                      ? "bg-amber-500 text-black hover:bg-amber-400"
+                      : "bg-white/5 text-muted-foreground/40 cursor-not-allowed"
                 )}
-                aria-label="Send"
+                aria-label={inCooldown ? "Slow down" : "Send"}
+                title={inCooldown ? "Easy there — slow down a sec" : "Send"}
               >
-                <Send className="w-4 h-4" />
+                {inCooldown ? (
+                  <span className="text-[11px] font-bold tabular-nums">
+                    {(cooldownRemainingMs / 1000).toFixed(1)}s
+                  </span>
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </button>
             </form>
           </motion.div>

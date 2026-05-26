@@ -19,7 +19,7 @@ import {
   type AvatarConfig,
 } from "./multiplayer.js";
 import { isContinent } from "./stocks.js";
-import { createMultiplayerSave, consumeResumeToken } from "./saves.js";
+import { createMultiplayerSave, consumeResumeToken, loadSave } from "./saves.js";
 
 interface ClientMessage {
   type: string;
@@ -301,6 +301,25 @@ function handleResume(socket: WebSocket, msg: ClientMessage): void {
   logger.info({ code: result.room.code, playerId: consumed.playerId }, "Player resumed multiplayer session");
 }
 
+/**
+ * Mint a fresh single-use resume token for the player on this socket and push
+ * it down. The client stores it and, if the WebSocket drops unexpectedly,
+ * reconnects with `resume_session` to seamlessly rejoin the game — instead of
+ * being kicked back to the "Disconnected" screen. Called on demand via the
+ * `request_resume_token` message (the client polls periodically).
+ */
+function handleRequestResumeToken(socket: WebSocket): void {
+  const ref = getRoomBySocket(socket);
+  if (!ref) return; // silently no-op if not in a room
+  // Throttle to defang an in-room client trying to spam token mints.
+  if (!checkRate(socket, "resume_token")) return;
+  const code = createMultiplayerSave(ref.room, ref.playerId);
+  const res = loadSave(code);
+  if (res?.resumeToken) {
+    send(socket, "resume_token", { resumeToken: res.resumeToken });
+  }
+}
+
 function handleLeave(socket: WebSocket): void {
   const room = handleSocketDisconnect(socket);
   if (room) broadcastRoom(room.code);
@@ -310,22 +329,30 @@ function handleLeave(socket: WebSocket): void {
 const REACTION_KINDS = new Set(["rocket", "moneybag", "chart", "skull", "fire", "diamond"]);
 
 // Per-socket simple token-bucket-style minimum-interval rate limit.
-interface RateState { lastChatMs: number; lastReactionMs: number; }
+interface RateState { lastChatMs: number; lastReactionMs: number; lastTokenMs: number; }
 const rateBySocket = new WeakMap<WebSocket, RateState>();
 const MIN_CHAT_MS = 600;            // ≈ 100/min ceiling per player
 const MIN_CHAT_ATTACHMENT_MS = 4000; // attachments are ~300 KB → 15/min
 const MIN_REACTION_MS = 250;         // ≈ 240/min per player
+// Resume tokens are cheap but not free (snapshot + token-map insert). Cap to
+// one mint per 5 s per socket — well above what an honest client needs (it
+// polls every 20s plus one immediate request on join) and tight enough to
+// neutralise an in-room client trying to flood us.
+const MIN_TOKEN_MS = 5000;
 
 function checkRate(
   sock: WebSocket,
-  kind: "chat" | "chat_attachment" | "reaction",
+  kind: "chat" | "chat_attachment" | "reaction" | "resume_token",
 ): boolean {
   const now = Date.now();
-  const state = rateBySocket.get(sock) ?? { lastChatMs: 0, lastReactionMs: 0 };
+  const state = rateBySocket.get(sock) ?? { lastChatMs: 0, lastReactionMs: 0, lastTokenMs: 0 };
   if (kind === "chat" || kind === "chat_attachment") {
     const min = kind === "chat_attachment" ? MIN_CHAT_ATTACHMENT_MS : MIN_CHAT_MS;
     if (now - state.lastChatMs < min) return false;
     state.lastChatMs = now;
+  } else if (kind === "resume_token") {
+    if (now - state.lastTokenMs < MIN_TOKEN_MS) return false;
+    state.lastTokenMs = now;
   } else {
     if (now - state.lastReactionMs < MIN_REACTION_MS) return false;
     state.lastReactionMs = now;
@@ -380,8 +407,17 @@ function handleChatMessage(socket: WebSocket, msg: ClientMessage): void {
   const attachment = sanitizeAttachment(msg["attachment"]);
   if (!text && !attachment) return;
   // Throttle attachment-bearing messages more aggressively (large payloads
-  // multiply by room size on fanout).
-  if (!checkRate(socket, attachment ? "chat_attachment" : "chat")) return;
+  // multiply by room size on fanout). When throttled, notify the client with
+  // a soft `chat_rate_limited` event so the UI can show feedback / cooldown
+  // instead of leaving the user wondering why their messages vanished.
+  const kind = attachment ? "chat_attachment" : "chat";
+  if (!checkRate(socket, kind)) {
+    const min = kind === "chat_attachment" ? MIN_CHAT_ATTACHMENT_MS : MIN_CHAT_MS;
+    const state = rateBySocket.get(socket);
+    const retryAfterMs = state ? Math.max(0, min - (Date.now() - state.lastChatMs)) : min;
+    send(socket, "chat_rate_limited", { retryAfterMs, kind });
+    return;
+  }
   const player = ref.room.players.get(ref.playerId);
   if (!player) return;
 
@@ -484,6 +520,9 @@ export function attachMultiplayerSocket(server: HttpServer): WebSocketServer {
             break;
           case "ping":
             send(socket, "pong");
+            break;
+          case "request_resume_token":
+            handleRequestResumeToken(socket);
             break;
           default:
             send(socket, "error", { message: `Unknown message type: ${type}` });

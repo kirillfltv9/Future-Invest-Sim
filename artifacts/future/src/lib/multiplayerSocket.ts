@@ -167,6 +167,8 @@ interface UseMultiplayerRoomReturn {
   isHost: boolean;
   chatMessages: ChatMessageWire[];
   liveReactions: ReactionWire[];
+  /** Epoch ms until which the chat send button should be cooled down. 0 = ready. */
+  chatCooldownUntil: number;
   consumeReaction: (id: string) => void;
   acceptJoin: (requestId: string) => void;
   denyJoin: (requestId: string) => void;
@@ -193,11 +195,23 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessageWire[]>([]);
   const [liveReactions, setLiveReactions] = useState<ReactionWire[]>([]);
+  const [chatCooldownUntil, setChatCooldownUntil] = useState(0);
   const socketRef = useRef<WebSocket | null>(null);
   const intentRef = useRef<MultiplayerIntent | null>(null);
   const closedManuallyRef = useRef(false);
   const saveResolversRef = useRef<Array<(code: string) => void>>([]);
   const saveRejectersRef = useRef<Array<(err: Error) => void>>([]);
+  // Most recent server-issued resume token. Refreshed in the background while
+  // we're in a room so we can transparently reconnect after an unexpected WS
+  // drop (network blip, server hiccup, browser backgrounding the tab, etc.)
+  // without bouncing the user back to the "Disconnected" screen.
+  const resumeTokenRef = useRef<string | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tokenPollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // True once we've successfully reached the in_room state at least once on
+  // this hook instance — gating auto-reconnect prevents loops on bad intents.
+  const hasJoinedRef = useRef(false);
 
   const sendMessage = useCallback((type: string, payload: Record<string, unknown> = {}) => {
     const sock = socketRef.current;
@@ -205,26 +219,30 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
     sock.send(JSON.stringify({ type, ...payload }));
   }, []);
 
-  useEffect(() => {
-    const intent = getMultiplayerIntent();
+  // Connect (and re-connect) using either the original intent or a fresh
+  // resume token. Extracted so the close handler can call it to transparently
+  // reattach the player after a network drop.
+  const connect = useCallback((opts: { useResumeToken?: string | null } = {}) => {
+    const intent = intentRef.current ?? getMultiplayerIntent();
     if (!intent) {
       setStatus("error");
       setErrorMessage("No multiplayer session in progress");
       return;
     }
     intentRef.current = intent;
-    setStatus("connecting");
-
-    // Defensive fallback: if the intent has no avatar (older session, refresh,
-    // or skipped customization), hydrate from the most recently saved look so
-    // the player never enters a game with the default skin unintentionally.
+    setStatus(opts.useResumeToken ? "registering" : "connecting");
     const avatarPayload = intent.avatar ?? loadStoredAvatar();
 
     const socket = new WebSocket(buildSocketUrl());
     socketRef.current = socket;
+    const resumeToken = opts.useResumeToken ?? null;
 
     socket.addEventListener("open", () => {
       setStatus("registering");
+      if (resumeToken) {
+        socket.send(JSON.stringify({ type: "resume_session", resumeToken }));
+        return;
+      }
       if (intent.mode === "host") {
         socket.send(JSON.stringify({
           type: "host_room",
@@ -262,6 +280,11 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
         case "room_created": {
           setMyPlayerId((msg["playerId"] as string) ?? null);
           setStatus("in_room");
+          hasJoinedRef.current = true;
+          reconnectAttemptsRef.current = 0;
+          // Mint a resume token immediately so even a disconnect within the
+          // first poll interval can transparently reattach.
+          socket.send(JSON.stringify({ type: "request_resume_token" }));
           break;
         }
         case "join_pending": {
@@ -271,11 +294,19 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
         case "joined": {
           setMyPlayerId((msg["playerId"] as string) ?? null);
           setStatus("in_room");
+          hasJoinedRef.current = true;
+          reconnectAttemptsRef.current = 0;
+          socket.send(JSON.stringify({ type: "request_resume_token" }));
           break;
         }
         case "resumed": {
           setMyPlayerId((msg["playerId"] as string) ?? null);
           setStatus("in_room");
+          hasJoinedRef.current = true;
+          reconnectAttemptsRef.current = 0;
+          // Mint a fresh token right away — the one we just used was single-use.
+          // 5s-rate-limited on the server, but we're well within that.
+          socket.send(JSON.stringify({ type: "request_resume_token" }));
           break;
         }
         case "save_created": {
@@ -286,11 +317,25 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
           resolvers.forEach((r) => r(code));
           break;
         }
+        case "resume_token": {
+          const token = (msg["resumeToken"] as string) ?? "";
+          if (token) resumeTokenRef.current = token;
+          break;
+        }
+        case "chat_rate_limited": {
+          const retryMs = Math.max(0, Number(msg["retryAfterMs"]) || 0);
+          setChatCooldownUntil(Date.now() + retryMs);
+          break;
+        }
         case "join_denied": {
           setErrorMessage((msg["reason"] as string) ?? "Host declined your request");
           setStatus("denied");
-          // Server will close us; clear intent so we don't try again
+          // Server will close us; clear intent so we don't try again.
           clearMultiplayerIntent();
+          // The resume token (if any) was consumed/invalidated server-side.
+          // Wipe it so the close handler doesn't try to reuse a dead credential.
+          resumeTokenRef.current = null;
+          reconnectAttemptsRef.current = 99;
           break;
         }
         case "room_state": {
@@ -346,27 +391,67 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
 
     socket.addEventListener("close", () => {
       if (closedManuallyRef.current) return;
+      // Auto-reconnect: if we made it into the room at least once and the
+      // server gave us a fresh resume token, transparently reattach. Cap
+      // attempts so a hard server outage eventually surfaces as "disconnected"
+      // instead of looping forever. We deliberately do NOT clear the token
+      // here — a single-use token is only consumed on the server when the
+      // reconnect socket successfully sends `resume_session`. If the dial
+      // itself fails before the server sees it, the same token is still good
+      // for the next attempt. On a successful `resumed`, we'll mint and store
+      // a fresh one; if the server rejects the token (`join_denied`), we'll
+      // surface the error and stop retrying.
+      const token = resumeTokenRef.current;
+      if (hasJoinedRef.current && token && reconnectAttemptsRef.current < 5) {
+        reconnectAttemptsRef.current += 1;
+        setStatus("connecting");
+        const delay = Math.min(4000, 300 * reconnectAttemptsRef.current ** 2);
+        if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = setTimeout(() => {
+          connect({ useResumeToken: token });
+        }, delay);
+        return;
+      }
       setStatus((prev) => (prev === "denied" ? "denied" : "disconnected"));
     });
 
     socket.addEventListener("error", () => {
-      setStatus((prev) => (prev === "denied" ? "denied" : "error"));
-      setErrorMessage("Connection error");
+      // Let the close handler decide whether to reconnect or surface the error.
+      // We only flip to "error" if we never managed to join in the first place.
+      if (!hasJoinedRef.current) {
+        setStatus((prev) => (prev === "denied" ? "denied" : "error"));
+        setErrorMessage("Connection error");
+      }
     });
+  }, []);
+
+  useEffect(() => {
+    connect();
+    // Background-refresh the resume token every 20s so reconnects always have
+    // a fresh single-use credential ready to go.
+    tokenPollTimerRef.current = setInterval(() => {
+      const sock = socketRef.current;
+      if (sock && sock.readyState === WebSocket.OPEN && hasJoinedRef.current) {
+        sock.send(JSON.stringify({ type: "request_resume_token" }));
+      }
+    }, 20000);
 
     return () => {
       closedManuallyRef.current = true;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      if (tokenPollTimerRef.current) clearInterval(tokenPollTimerRef.current);
+      const sock = socketRef.current;
       try {
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: "leave" }));
+        if (sock && sock.readyState === WebSocket.OPEN) {
+          sock.send(JSON.stringify({ type: "leave" }));
         }
-        socket.close();
+        sock?.close();
       } catch {
         /* ignore */
       }
       socketRef.current = null;
     };
-  }, []);
+  }, [connect]);
 
   const isHost = !!(room && myPlayerId && room.hostId === myPlayerId);
 
@@ -379,6 +464,7 @@ export function useMultiplayerRoom(): UseMultiplayerRoomReturn {
     isHost,
     chatMessages,
     liveReactions,
+    chatCooldownUntil,
     consumeReaction: (id: string) =>
       setLiveReactions((prev) => prev.filter((r) => r.id !== id)),
     acceptJoin: (requestId) => sendMessage("accept_join", { requestId }),
